@@ -1,0 +1,22 @@
+{
+  "defaultSeverity": "error",
+  "extends": ["@oclif/tslint", "tslint-config-airbnb", "tslint-react", "tslint-config-prettier"],
+  "jsRules": {},
+  "rules": {
+    "ban-comma-operator": true,
+    "class-name": true,
+    "no-console": false,
+    "function-name": false,
+    "import-name": false,
+    "indent": [true, "spaces", 2],
+    "jsx-boolean-value": ["error", "always", { "never": "jsx" }],
+    "no-bitwise": false,
+    "no-null-keyword": true,
+    "no-unused": [true, {"ignore-pattern": "^_"}],
+    "ordered-imports": true,
+    "no-trailing-whitespace": true,
+    "semicolon": true,
+    "trailing-comma": [true, { "multiline": "always", "singleline": "never" }],
+    "variable-name": [true, "ban-keywords", "check-format", "allow-pascal-case"]
+  }
+}
