@@ -294,6 +294,13 @@ export interface Reservation {
   price_booked: number;
 }
 
+export interface ReservationGetRequest {
+  ids?: number[];
+  userEmails?: string[];
+  startTime?: object;
+  endTime?: object;
+}
+
 export interface ReservationRequest {
   lattice_name: string;
   start_time: string;

@@ -10,6 +10,7 @@ import {
   QMI,
   QMIRequest,
   Reservation,
+  ReservationGetRequest,
   ReservationRequest,
 } from './utils';
 
@@ -97,12 +98,7 @@ export const GET = {
     userEmails,
     startTime,
     endTime,
-  }: {
-    ids?: number[];
-    userEmails?: string[];
-    startTime?: object;
-    endTime?: object;
-  } = {}): Promise<Reservation[]> => {
+  }: ReservationGetRequest = {}): Promise<Reservation[]> => {
     const response = (await _get(URLS.schedule, {
       ids,
       user_emails: userEmails ? userEmails.map(e => e.toLowerCase()) : undefined,
