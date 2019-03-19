@@ -320,11 +320,12 @@ export const availabilityTitles =
 const currentHeader = 'CURRENTLY RUNNING COMPUTE BLOCKS';
 const upcomingHeader = 'UPCOMING COMPUTE BLOCKS';
 
-export function serializeReservations(reservations: Reservation[], serializeReservationHandler?: (arg0: Reservation) => string) {
-  console.log(reservations);
+export function serializeReservations(reservations: Reservation[], serializeReservationHandler?: (arg0: Reservation) => string, titles?: string) {
   if (reservations.length === 0) {
     return 'No reservations found.';
   }
+
+  const resTitles = titles ? titles : reservationTitles;
 
   const [current, upcoming] = separateCurrentUpcomingReservations(
     reservations,
@@ -334,7 +335,7 @@ export function serializeReservations(reservations: Reservation[], serializeRese
 
   if (current.length > 0) {
     line += `${currentHeader}\n`;
-    line += `${reservationTitles}\n`;
+    line += `${resTitles}\n`;
     current.map(reservation => {
       if (serializeReservationHandler) {
         line += serializeReservationHandler(reservation);
@@ -350,7 +351,7 @@ export function serializeReservations(reservations: Reservation[], serializeRese
 
   if (upcoming.length > 0) {
     line += `${upcomingHeader}\n`;
-    line += `${reservationTitles}\n`;
+    line += `${resTitles}\n`;
     upcoming.map(reservation => {
       if (serializeReservationHandler) {
         line += serializeReservationHandler(reservation);
