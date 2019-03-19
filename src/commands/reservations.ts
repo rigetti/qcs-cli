@@ -5,7 +5,7 @@ import {
   serializeReservations,
 } from '../utils';
 
-const staticExample = 'View the compute block schedule.';
+const staticExample = 'qcs reservations';
 
 export default class Reservations extends Command {
   static description = 'View the compute block schedule.';

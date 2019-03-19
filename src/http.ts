@@ -95,12 +95,19 @@ export const GET = {
   schedule: async ({
     ids,
     userEmails,
-  }: { ids?: number[]; userEmails?: string[] } = {}): Promise<
-    Reservation[]
-  > => {
+    startTime,
+    endTime,
+  }: {
+    ids?: number[];
+    userEmails?: string[];
+    startTime?: object;
+    endTime?: object;
+  } = {}): Promise<Reservation[]> => {
     const response = (await _get(URLS.schedule, {
       ids,
       user_emails: userEmails ? userEmails.map(e => e.toLowerCase()) : undefined,
+      start_time: startTime,
+      end_time: endTime,
     })) as ReservationsResponse;
     if ('error_type' in response) {
       if (response.error_type === 'reservation_not_found') {
