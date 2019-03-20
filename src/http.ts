@@ -84,7 +84,7 @@ async function _post(path: string, data: any = {}) {
   return await _request(path, data, 'post') as StatusResponse;
 }
 
-function _required_property(obj: {[key: string]: any}, prop: string) {
+export function _required_property(obj: {[key: string]: any}, prop: string) {
   if (!(prop in obj)) {
     throw new Error(`Missing required property '${prop}'`);
   }

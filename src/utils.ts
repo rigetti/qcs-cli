@@ -442,6 +442,23 @@ export function separateCurrentUpcomingReservations(
   return [current, upcoming];
 }
 
+export function makeAvailabilityRequest(startTime: string, duration: string, latticeName?: string): AvailabilityRequest {
+  return {
+    start_time: convertNaturalDateStringToMoment(startTime).toDate().toISOString(),
+    duration: convertDurationStringToSeconds(duration),
+    lattice_name: latticeName,
+  };
+}
+
+export function makeReservationRequest(availabilityRequest: AvailabilityRequest, latticeName: string, notes: string): ReservationRequest {
+  return {
+    notes,
+    lattice_name: latticeName,
+    start_time: availabilityRequest.start_time,
+    end_time: (new Date(Number(new Date(availabilityRequest.start_time)) + availabilityRequest.duration * 1e3)).toISOString(),
+  };
+}
+
 export async function bookReservations(
   reservationRequest: ReservationRequest,
 ): Promise<string> {
