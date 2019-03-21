@@ -204,10 +204,10 @@ export function mockDeleteReservations() {
       .reply(202);
 }
 
-export function mockPostReservations() {
+export function mockPostReservations(expectedData: ReservationRequest) {
   return nock(config.publicForestServer)
     .post(URLS.schedule, (data: ReservationRequest) => {
-      expect(data).to.eql(reservationRequest);
+      expect(data).to.eql(expectedData);
       return true;
     })
     .reply(200, reservationsResponse);

@@ -17,11 +17,7 @@ export default class Devices extends Command {
   async run() {
     try {
       const devices = await GET.devices() as DevicesByName;
-      if (Object.keys(devices).length === 0) {
-        this.log('\nNo devices found.\n');
-      } else {
-        this.log(serializeDevices(devices));
-      }
+      this.log(serializeDevices(devices));
     } catch (e) {
       this.log(`error: ${e}`);
     }

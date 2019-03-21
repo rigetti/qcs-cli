@@ -194,6 +194,8 @@ export interface Lattice {
 }
 
 export function serializeDevices(devices: { [name: string]: Device }) {
+  if (Object.keys(devices).length < 1) return '\nNo devices found.\n';
+
   let str = '';
   Object.keys(devices).map(deviceName => {
     str += serializeDevice(deviceName);
