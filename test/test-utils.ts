@@ -22,6 +22,8 @@ import {
   ReservationRequest,
 } from '../src/utils';
 
+export { nock };
+
 /*
   Credits
 */
@@ -44,7 +46,7 @@ export function mockGetCredits() {
   Devices
 */
 
-const testDevice = {
+export const testDevice = {
   device_name: 'test-device',
   num_qubits: 16,
   category: 'test-category',
