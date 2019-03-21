@@ -224,6 +224,8 @@ export function serializeLattice(latticeName: string, lattice: Lattice) {
 }
 
 export function serializeLattices(lattices: { [name: string]: Lattice }) {
+  if (Object.keys(lattices).length === 0) return '\nNo lattices found.\n';
+
   let str = '';
   Object.keys(lattices).map(latticeName => {
     str += serializeLattice(latticeName, lattices[latticeName]);

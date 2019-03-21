@@ -74,12 +74,12 @@ const testLattice = {
   qubits: {2: 2},
   device: 'some-device',
   device_name: 'some-device-name',
-  lattice_name: 'test_lattice',
+  lattice_name: 'test-lattice',
   price_per_minute: 100,
 } as Lattice;
 
 const latticeByName = {
-  'test_lattice': testLattice,
+  'test-lattice': testLattice,
 } as LatticesByName;
 
 export const latticesResponse = {
