@@ -70,7 +70,7 @@ export function mockGetDevices() {
   Lattices
 */
 
-const testLattice = {
+export const testLattice = {
   qubits: {2: 2},
   device: 'some-device',
   device_name: 'some-device-name',
