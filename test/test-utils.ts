@@ -107,7 +107,7 @@ export function mockGetQMIs() {
     .reply(200, qmisResponse);
 }
 
-export function mockGetQMI(id) {
+export function mockGetQMI(id: number) {
   nock(config.publicForestServer)
     .get(`${URLS.qmis}/${id}`)
     .reply(200, qmiResponse);
@@ -122,7 +122,7 @@ export function mockPostQMI() {
     .reply(201);
 }
 
-export function mockDeleteQMI(id) {
+export function mockDeleteQMI(id: number) {
   return nock(config.publicForestServer)
     .delete(`${URLS.qmis}/${id}`)
     .reply(202);

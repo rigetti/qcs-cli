@@ -177,7 +177,7 @@ export function logCredits(credits: Credits) {
   Devices & lattices utilities
 */
 
-type Qubits = { [devIdx: number]: number };
+export type Qubits = { [devIdx: number]: number };
 
 export interface Device {
   device_name: string;
