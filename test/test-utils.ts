@@ -132,9 +132,9 @@ export function mockDeleteQMI(id) {
   Reservations & Availability
 */
 
-const startTime = '2019-01-15T14:30:49.456571+00:00';
+export const startTime = '2019-01-15T14:30:00.000Z';
 export const startTimeDate = dtFmt(new Date(startTime));
-const endTime = '2019-01-15T15:30:49.456Z';
+const endTime = '2019-01-15T15:30:00.000Z';
 export const endTimeDate = dtFmt(new Date(endTime));
 export const reservationNotes = 'Running some Rabi experiments.';
 export const latticeName = 'test-lattice';
@@ -167,7 +167,7 @@ export const availabilityRequest = {
   duration: 3600,
 } as AvailabilityRequest;
 
-const availability = {
+export const availability = {
   lattice_name: availabilityRequest.lattice_name,
   start_time: availabilityRequest.start_time,
   end_time: (new Date(Number(new Date(availabilityRequest.start_time)) + availabilityRequest.duration * 1e3)).toISOString(),
