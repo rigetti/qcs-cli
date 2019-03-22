@@ -2,7 +2,8 @@ import { expect } from 'chai';
 import * as nock from 'nock';
 
 import * as config from '../src/config';
-import { DevicesByName,
+import { AvailabilitiesResponse,
+         DevicesByName,
          DevicesResponse,
          LatticesByName,
          LatticesResponse,
@@ -10,7 +11,6 @@ import { DevicesByName,
          QMIsResponse,
          URLS } from '../src/http';
 import {
-  Availabilities,
   Availability,
   AvailabilityRequest,
   Credits,
@@ -176,11 +176,11 @@ export const availability = {
 
 export const availabilitiesResponse = {
   availability: [availability],
-} as Availabilities;
+} as AvailabilitiesResponse;
 
 export const twoAvailabilitiesResponse = {
   availability: [availability, availability],
-} as Availabilities;
+} as AvailabilitiesResponse;
 
 export function mockGetAvailability() {
   return nock(config.publicForestServer)

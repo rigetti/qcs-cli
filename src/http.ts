@@ -31,7 +31,7 @@ const KNOWN_CODES = { 200: 'OK', 201: 'Resource created', 202: 'Resource marked 
 
 type ErrorResponse = { error_type: string; status: string };
 type StatusResponse = { status: string } | ErrorResponse;
-export type AvailabilitiesResponse = {availabilities: Availability[]} | ErrorResponse;
+export type AvailabilitiesResponse = {availability: Availability[]} | ErrorResponse;
 export type ReservationsResponse =
   | { reservations: Reservation[]; requested_reservations: Reservation[] }
   | ErrorResponse;
@@ -42,7 +42,7 @@ export type DevicesResponse = { devices: DevicesByName } | ErrorResponse;
 export type QMIResponse = { qmi: QMI } | ErrorResponse;
 export type QMIsResponse = { qmis: QMI[] } | ErrorResponse;
 
-async function _request(path: string, data: any = {}, method: string) {
+export async function _request(path: string, data: any = {}, method: string) {
   const options = {
     method,
     url: config.publicForestServer + path,
@@ -80,7 +80,7 @@ export async function _get(path: string, data: any = {}) {
   return await _request(path, data, 'get') as StatusResponse;
 }
 
-async function _post(path: string, data: any = {}) {
+export async function _post(path: string, data: any = {}) {
   return await _request(path, data, 'post') as StatusResponse;
 }
 
@@ -197,7 +197,7 @@ export const POST = {
   },
 };
 
-async function _delete(path: string, data: any = {}) {
+export async function _delete(path: string, data: any = {}) {
   return await _request(path, data, 'delete') as StatusResponse;
 }
 
