@@ -1,6 +1,6 @@
 # qcs-cli
 
-The`qcs-cli` is the Rigetti Quantum Cloud Services Command Line Interface (CLI). It is used for:
+The `qcs-cli` is the Rigetti Quantum Cloud Services Command Line Interface (CLI). It is used for:
 
 - Reserving, viewing, or cancelling your reservations on Rigetti Quantum Computers,
 - Listing available Quantum Computers (devices) and various sublattices within them.
