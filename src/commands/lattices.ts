@@ -35,11 +35,6 @@ export default class Lattices extends Command {
 
     try {
       const lattices = await GET.lattices(device, numQubits) as LatticesByName;
-
-      if (Object.keys(lattices).length === 0) {
-        return this.log('\nNo lattices found.\n');
-      }
-
       this.log(serializeLattices(lattices));
     } catch (e) {
       this.log(`error: ${e}`);

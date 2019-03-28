@@ -140,7 +140,7 @@ describe('test the GET /qmis api', () => {
 
 describe('test the POST /reservations api', () => {
   beforeEach(() => {
-    mockPostReservations();
+    mockPostReservations(reservationRequest);
   });
 
   it('should post a reservation and receive it back from the POST /schedule route', async () => {

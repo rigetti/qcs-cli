@@ -2,7 +2,8 @@ import { expect } from 'chai';
 import * as nock from 'nock';
 
 import * as config from '../src/config';
-import { DevicesByName,
+import { AvailabilitiesResponse,
+         DevicesByName,
          DevicesResponse,
          LatticesByName,
          LatticesResponse,
@@ -10,7 +11,6 @@ import { DevicesByName,
          QMIsResponse,
          URLS } from '../src/http';
 import {
-  Availabilities,
   Availability,
   AvailabilityRequest,
   Credits,
@@ -21,6 +21,8 @@ import {
   Reservation,
   ReservationRequest,
 } from '../src/utils';
+
+export { nock };
 
 /*
   Credits
@@ -44,7 +46,7 @@ export function mockGetCredits() {
   Devices
 */
 
-const testDevice = {
+export const testDevice = {
   device_name: 'test-device',
   num_qubits: 16,
   category: 'test-category',
@@ -68,16 +70,16 @@ export function mockGetDevices() {
   Lattices
 */
 
-const testLattice = {
+export const testLattice = {
   qubits: {2: 2},
   device: 'some-device',
   device_name: 'some-device-name',
-  lattice_name: 'test_lattice',
+  lattice_name: 'test-lattice',
   price_per_minute: 100,
 } as Lattice;
 
 const latticeByName = {
-  'test_lattice': testLattice,
+  'test-lattice': testLattice,
 } as LatticesByName;
 
 export const latticesResponse = {
@@ -105,7 +107,7 @@ export function mockGetQMIs() {
     .reply(200, qmisResponse);
 }
 
-export function mockGetQMI(id) {
+export function mockGetQMI(id: number) {
   nock(config.publicForestServer)
     .get(`${URLS.qmis}/${id}`)
     .reply(200, qmiResponse);
@@ -120,7 +122,7 @@ export function mockPostQMI() {
     .reply(201);
 }
 
-export function mockDeleteQMI(id) {
+export function mockDeleteQMI(id: number) {
   return nock(config.publicForestServer)
     .delete(`${URLS.qmis}/${id}`)
     .reply(202);
@@ -130,9 +132,9 @@ export function mockDeleteQMI(id) {
   Reservations & Availability
 */
 
-const startTime = '2019-01-15T14:30:49.456571+00:00';
+export const startTime = '2019-01-15T14:30:00.000Z';
 export const startTimeDate = dtFmt(new Date(startTime));
-const endTime = '2019-01-15T15:30:49.456Z';
+const endTime = '2019-01-15T15:30:00.000Z';
 export const endTimeDate = dtFmt(new Date(endTime));
 export const reservationNotes = 'Running some Rabi experiments.';
 export const latticeName = 'test-lattice';
@@ -165,7 +167,7 @@ export const availabilityRequest = {
   duration: 3600,
 } as AvailabilityRequest;
 
-const availability = {
+export const availability = {
   lattice_name: availabilityRequest.lattice_name,
   start_time: availabilityRequest.start_time,
   end_time: (new Date(Number(new Date(availabilityRequest.start_time)) + availabilityRequest.duration * 1e3)).toISOString(),
@@ -174,11 +176,11 @@ const availability = {
 
 export const availabilitiesResponse = {
   availability: [availability],
-} as Availabilities;
+} as AvailabilitiesResponse;
 
 export const twoAvailabilitiesResponse = {
   availability: [availability, availability],
-} as Availabilities;
+} as AvailabilitiesResponse;
 
 export function mockGetAvailability() {
   return nock(config.publicForestServer)
@@ -204,10 +206,10 @@ export function mockDeleteReservations() {
       .reply(202);
 }
 
-export function mockPostReservations() {
+export function mockPostReservations(expectedData: ReservationRequest) {
   return nock(config.publicForestServer)
     .post(URLS.schedule, (data: ReservationRequest) => {
-      expect(data).to.eql(reservationRequest);
+      expect(data).to.eql(expectedData);
       return true;
     })
     .reply(200, reservationsResponse);

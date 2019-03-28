@@ -10,6 +10,7 @@ import {
   QMI,
   QMIRequest,
   Reservation,
+  ReservationGetRequest,
   ReservationRequest,
 } from './utils';
 
@@ -30,7 +31,7 @@ const KNOWN_CODES = { 200: 'OK', 201: 'Resource created', 202: 'Resource marked 
 
 type ErrorResponse = { error_type: string; status: string };
 type StatusResponse = { status: string } | ErrorResponse;
-export type AvailabilitiesResponse = {availabilities: Availability[]} | ErrorResponse;
+export type AvailabilitiesResponse = {availability: Availability[]} | ErrorResponse;
 export type ReservationsResponse =
   | { reservations: Reservation[]; requested_reservations: Reservation[] }
   | ErrorResponse;
@@ -41,7 +42,7 @@ export type DevicesResponse = { devices: DevicesByName } | ErrorResponse;
 export type QMIResponse = { qmi: QMI } | ErrorResponse;
 export type QMIsResponse = { qmis: QMI[] } | ErrorResponse;
 
-async function _request(path: string, data: any = {}, method: string) {
+export async function _request(path: string, data: any = {}, method: string) {
   const options = {
     method,
     url: config.publicForestServer + path,
@@ -79,11 +80,11 @@ export async function _get(path: string, data: any = {}) {
   return await _request(path, data, 'get') as StatusResponse;
 }
 
-async function _post(path: string, data: any = {}) {
+export async function _post(path: string, data: any = {}) {
   return await _request(path, data, 'post') as StatusResponse;
 }
 
-function _required_property(obj: {[key: string]: any}, prop: string) {
+export function _required_property(obj: {[key: string]: any}, prop: string) {
   if (!(prop in obj)) {
     throw new Error(`Missing required property '${prop}'`);
   }
@@ -95,12 +96,14 @@ export const GET = {
   schedule: async ({
     ids,
     userEmails,
-  }: { ids?: number[]; userEmails?: string[] } = {}): Promise<
-    Reservation[]
-  > => {
+    startTime,
+    endTime,
+  }: ReservationGetRequest = {}): Promise<Reservation[]> => {
     const response = (await _get(URLS.schedule, {
       ids,
       user_emails: userEmails ? userEmails.map(e => e.toLowerCase()) : undefined,
+      start_time: startTime,
+      end_time: endTime,
     })) as ReservationsResponse;
     if ('error_type' in response) {
       if (response.error_type === 'reservation_not_found') {
@@ -194,7 +197,7 @@ export const POST = {
   },
 };
 
-async function _delete(path: string, data: any = {}) {
+export async function _delete(path: string, data: any = {}) {
   return await _request(path, data, 'delete') as StatusResponse;
 }
 

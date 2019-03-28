@@ -9,6 +9,7 @@ import { endTimeDate,
          mockGetCredits,
          mockPostReservations,
          reservationNotes,
+         reservationRequest,
          startTimeDate,
 } from './test-utils';
 
@@ -40,7 +41,7 @@ describe('test the qcs reserve command', () => {
     mockGetCredits();
     mockGetAvailability();
     mockGetAvailabilityReturnTwo();
-    mockPostReservations();
+    mockPostReservations(reservationRequest);
   });
 
   const confirmReserveStub = sinon.stub(utils, 'confirmReservationPrompt');
