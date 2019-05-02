@@ -177,7 +177,7 @@ export function logCredits(credits: Credits) {
   Devices & lattices utilities
 */
 
-type Qubits = { [devIdx: number]: number };
+export type Qubits = { [devIdx: number]: number };
 
 export interface Device {
   device_name: string;
@@ -194,6 +194,8 @@ export interface Lattice {
 }
 
 export function serializeDevices(devices: { [name: string]: Device }) {
+  if (Object.keys(devices).length < 1) return '\nNo devices found.\n';
+
   let str = '';
   Object.keys(devices).map(deviceName => {
     str += serializeDevice(deviceName);
@@ -222,6 +224,8 @@ export function serializeLattice(latticeName: string, lattice: Lattice) {
 }
 
 export function serializeLattices(lattices: { [name: string]: Lattice }) {
+  if (Object.keys(lattices).length === 0) return '\nNo lattices found.\n';
+
   let str = '';
   Object.keys(lattices).map(latticeName => {
     str += serializeLattice(latticeName, lattices[latticeName]);
@@ -294,6 +298,13 @@ export interface Reservation {
   price_booked: number;
 }
 
+export interface ReservationGetRequest {
+  ids?: number[];
+  userEmails?: string[];
+  startTime?: object;
+  endTime?: object;
+}
+
 export interface ReservationRequest {
   lattice_name: string;
   start_time: string;
@@ -320,10 +331,12 @@ export const availabilityTitles =
 const currentHeader = 'CURRENTLY RUNNING COMPUTE BLOCKS';
 const upcomingHeader = 'UPCOMING COMPUTE BLOCKS';
 
-export function serializeReservations(reservations: Reservation[]) {
+export function serializeReservations(reservations: Reservation[], serializeReservationHandler?: (arg0: Reservation) => string, titles?: string) {
   if (reservations.length === 0) {
     return 'No reservations found.';
   }
+
+  const resTitles = titles ? titles : reservationTitles;
 
   const [current, upcoming] = separateCurrentUpcomingReservations(
     reservations,
@@ -333,8 +346,14 @@ export function serializeReservations(reservations: Reservation[]) {
 
   if (current.length > 0) {
     line += `${currentHeader}\n`;
-    line += `${reservationTitles}\n`;
-    current.map(reservation => line += serializeReservation(reservation));
+    line += `${resTitles}\n`;
+    current.map(reservation => {
+      if (serializeReservationHandler) {
+        line += serializeReservationHandler(reservation);
+      } else {
+        line += serializeReservation(reservation);
+      }
+    });
   }
 
   if (current.length > 0 && upcoming.length > 0) {
@@ -343,8 +362,14 @@ export function serializeReservations(reservations: Reservation[]) {
 
   if (upcoming.length > 0) {
     line += `${upcomingHeader}\n`;
-    line += `${reservationTitles}\n`;
-    upcoming.map(reservation => line += serializeReservation(reservation));
+    line += `${resTitles}\n`;
+    upcoming.map(reservation => {
+      if (serializeReservationHandler) {
+        line += serializeReservationHandler(reservation);
+      } else {
+        line += serializeReservation(reservation);
+      }
+    });
   }
 
   return line;
@@ -419,6 +444,23 @@ export function separateCurrentUpcomingReservations(
     }
   });
   return [current, upcoming];
+}
+
+export function makeAvailabilityRequest(startTime: string, duration: string, latticeName?: string): AvailabilityRequest {
+  return {
+    start_time: convertNaturalDateStringToMoment(startTime).toDate().toISOString(),
+    duration: convertDurationStringToSeconds(duration),
+    lattice_name: latticeName,
+  };
+}
+
+export function makeReservationRequest(availabilityRequest: AvailabilityRequest, latticeName: string, notes: string): ReservationRequest {
+  return {
+    notes,
+    lattice_name: latticeName,
+    start_time: availabilityRequest.start_time,
+    end_time: (new Date(Number(new Date(availabilityRequest.start_time)) + availabilityRequest.duration * 1e3)).toISOString(),
+  };
 }
 
 export async function bookReservations(

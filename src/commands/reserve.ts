@@ -2,14 +2,12 @@ import { Command, flags } from '@oclif/command';
 
 import { GET } from '../http';
 import {
-  AvailabilityRequest,
   bookReservations,
   confirmReservationPrompt,
-  convertDurationStringToSeconds,
-  convertNaturalDateStringToMoment,
   logCredits,
+  makeAvailabilityRequest,
+  makeReservationRequest,
   red,
-  ReservationRequest,
   reset,
   serializeAvailabilities,
 } from '../utils';
@@ -65,12 +63,7 @@ export default class Reserve extends Command {
       return;
     }
 
-    const startTime = convertNaturalDateStringToMoment(flags.start).toDate().toISOString();
-    const availreq: AvailabilityRequest = {
-      start_time: startTime,
-      duration: convertDurationStringToSeconds(flags.duration),
-      lattice_name: flags.lattice,
-    };
+    const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
 
     try {
       let answer;
@@ -107,12 +100,7 @@ export default class Reserve extends Command {
           console.log(line);
           return;
         }
-        const resreq = {
-          lattice_name: availability.lattice_name,
-          start_time: availreq.start_time,
-          end_time: (new Date(Number(new Date(availreq.start_time)) + availreq.duration * 1e3)).toISOString(),
-          notes: flags.notes,
-        } as ReservationRequest;
+        const resreq = makeReservationRequest(availreq, availability.lattice_name, flags.notes || '');
         this.log(await bookReservations(resreq));
       } while (answer === 'n');
     } catch (e) {

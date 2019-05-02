@@ -1,7 +1,7 @@
 {
   "name": "qcs-cli",
   "description": "The Rigetti QCS Command Line Interface (CLI)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": " @rigetti",
   "private": false,
   "bin": {

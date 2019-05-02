@@ -2,8 +2,8 @@ import {expect, test} from '@oclif/test';
 
 import { mockGetLattices } from './test-utils';
 
-const serializedLattices = `LATTICE
-Name: test_lattice
+const output = `LATTICE
+Name: test-lattice
   Device: some-device-name
   Number of qubits: 1
   Qubits: 2
@@ -20,6 +20,6 @@ describe('test the qcs lattices command', () => {
     .stdout()
     .command(['lattices'])
     .it('should call the lattices command with no arguments and verify output', ctx => {
-      expect(ctx.stdout).to.equal(serializedLattices);
+      expect(ctx.stdout).to.equal(output);
     });
 });
