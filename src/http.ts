@@ -23,6 +23,7 @@ export const URLS = {
   devices: '/devices',
   credits: '/users/credits',
   qmis: '/qmis',
+  graphql: '/graphql',
 };
 
 const KNOWN_CODES = { 200: 'OK', 201: 'Resource created', 202: 'Resource marked for deletion',
@@ -194,6 +195,18 @@ export const POST = {
     if (response && 'error_type' in response) {
       throw new Error(`Server response: "${response.status}"`);
     }
+  },
+  graphql: async (payload: object): Promise<request.Request> => {
+    const options = {
+      method: 'POST',
+      url: `${config.publicForestServer}${URLS.graphql}`,
+      body: payload,
+      json: true,
+      headers: {
+        'X-User-Id': config.userToken,
+      },
+    };
+    return request(options);
   },
 };
 
