@@ -11,8 +11,9 @@ import { confirmDeleteQMI,
 
 const STATIC_EXAMPLE = `$ qcs qmis`;
 
+
 export default class QMIS extends Command {
-  static description = 'View, create, and delete QMIs.';
+  static description = 'View, create, start/stop, and delete QMIs.';
 
   static examples = [STATIC_EXAMPLE];
 
@@ -20,7 +21,7 @@ export default class QMIS extends Command {
     help: flags.help({ char: 'h' }),
     id: flags.string({
       char: 'i',
-      description: 'ID of a QMI, optionally supplied during query or deletion.',
+      description: 'ID of a QMI, optionally supplied during query, start/stop, or delete.',
       required: false,
     }),
     create: flags.boolean({
@@ -42,6 +43,14 @@ export default class QMIS extends Command {
       description: 'Delete a QMI, requires specifying an --id.',
       required: false,
     }),
+    start: flags.boolean({
+      description: 'Power on a QMI, requires specifying an --id.',
+      required: false,
+    }),
+    stop: flags.boolean({
+      description: 'Power off a QMI, requires specifying an --id.',
+      required: false,
+    }),
   };
 
   async run() {
@@ -52,7 +61,6 @@ export default class QMIS extends Command {
       if (!flags.keypath) throw new Error(`Must supply a --keypath when creating a QMI.`);
       if (flags.id) throw new Error(`Cannot supply an --id when creating a QMI.`);
       if (flags.delete) throw new Error(`Cannot supply --delete and --create simultaneously`);
-
 
       let timezoneString = flags.timezone;
       if (!timezoneString) {
@@ -88,6 +96,19 @@ export default class QMIS extends Command {
         await DELETE.qmis(id);
         this.log('QMI deletion successful.');
       } else { this.log('Typed response doesn\'t match QMI IP address, aborting deletion.'); }
+    } else if (flags.start || flags.stop) {
+      if (flags.keypath) throw new Error(`Cannot supply a --keypath when powering on/off a QMI.`);
+      if (!flags.id) throw new Error(`Must supply an --id when deleting a QMI.`);
+      if (flags.start && flags.stop) throw new Error(`Cannot start (--start) and stop (--stop) QMI at once.`);
+
+      const id = parsePositiveInteger(flags.id);
+      if (!id) { throw new Error(`Must supply a positive integer ID when powering on/off a QMI.`); }
+
+      try {
+        const qmiURLAction = flags.start ? 'start' : 'stop';
+        await POST.qmi(id, qmiURLAction);
+        this.log(`QMI successfully ${flags.start ? 'powered on' : 'powered off'}.`);
+      } catch(e) { this.log(`error: ${e}`); process.exit(1); }
     } else {
       // Query for QMIs.
       const id = flags.id ? parsePositiveInteger(flags.id) : undefined;

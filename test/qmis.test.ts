@@ -1,6 +1,7 @@
 import {expect, test} from '@oclif/test';
 import * as sinon from 'sinon';
 
+import { POST } from '../src/http';
 import * as utils from '../src/utils';
 
 import { key, mockDeleteQMI, mockGetQMI, mockGetQMIs, mockPostQMI } from './test-utils';
@@ -70,5 +71,34 @@ describe('delete a qmi', () => {
   .command(['qmis', '-d', '-i', '1'])
   .it('should call qmis -d -i 1', ctx => {
     expect(ctx.stdout).to.equal("QMI deletion successful.\n");
+  });
+});
+
+describe('test the qcs-admin qmi start/stop', () => {
+  let postStub: sinon.SinonStub;
+  beforeEach(() => {
+      postStub = sinon.stub(POST, 'qmi');
+      postStub.returns(new Promise((ok) => {
+          ok();
+      }));
+  });
+  afterEach(() => {
+      postStub.restore();
+  });
+
+test
+  .stdout()
+  .command(['qmis', '--start', '-i', '19'])
+  .it('should call POST qmi/qmiId/start', ctx => {
+      postStub.calledOnceWith(19, 'start');
+      expect(ctx.stdout).to.include("QMI successfully powered on");
+  });
+
+test
+  .stdout()
+  .command(['qmis', '--stop', '-i', '19'])
+  .it('should call POST qmi/qmiId/stop', ctx => {
+      postStub.calledOnceWith(19, 'stop');
+      expect(ctx.stdout).to.include("QMI successfully powered off");
   });
 });
