@@ -11,46 +11,25 @@ import { confirmDeleteQMI,
 
 const STATIC_EXAMPLE = `$ qcs qmis`;
 
-const enum ACTIONS {
-  START = 'start',
-  STOP = 'stop',
-  VIEW = 'view',
-  CREATE = 'create',
-  DELETE = 'delete',
-}
-
 export default class QMIS extends Command {
-  static description = 'View, create, start/stop, and delete QMIs.';
+  static description = 'View, create, and delete QMIs.';
 
   static examples = [STATIC_EXAMPLE];
-
-  static args = [
-    {
-      name: 'action',
-      description: 'What QMI action would you like to take?',
-      required: true,
-      hidden: false,
-      default: '',
-      options: [
-        'start',
-        'stop',
-        'delete',
-        'create',
-        'view',
-      ],
-    },
-  ];
 
   static flags = {
     help: flags.help({ char: 'h' }),
     id: flags.string({
       char: 'i',
-      description: 'ID of a QMI, optionally supplied during view, start/stop, or delete.',
+      description: 'ID of a QMI, optionally supplied during query or deletion.',
       required: false,
+    }),
+    create: flags.boolean({
+      char: 'c',
+      description: 'Create a QMI, requires specifying an SSH public --keypath, and optionally a --timezone.',
     }),
     keypath: flags.string({
       char: 'k',
-      description: 'Path to an SSH public key, supplied during qmis create.',
+      description: 'Path to an SSH public key, supplied during qmis --create.',
       required: false,
     }),
     timezone: flags.string({
@@ -58,15 +37,22 @@ export default class QMIS extends Command {
       description: 'Value to which the QMI timezone should be set, e.g. America/Los_Angeles. Defaults to the system timezone of the machine on which the CLI is being run.',
       required: false,
     }),
+    delete: flags.boolean({
+      char: 'd',
+      description: 'Delete a QMI, requires specifying an --id.',
+      required: false,
+    }),
   };
 
   async run() {
-    const { flags, args } = this.parse(QMIS);
+    const { flags } = this.parse(QMIS);
 
-    if (args.action === ACTIONS.CREATE) {
+    if (flags.create) {
       // Create a QMI.
       if (!flags.keypath) throw new Error(`Must supply a --keypath when creating a QMI.`);
       if (flags.id) throw new Error(`Cannot supply an --id when creating a QMI.`);
+      if (flags.delete) throw new Error(`Cannot supply --delete and --create simultaneously`);
+
 
       let timezoneString = flags.timezone;
       if (!timezoneString) {
@@ -82,7 +68,7 @@ export default class QMIS extends Command {
         await POST.qmis({ public_key: getKey(keypath) } as QMIRequest);
         this.log('QMI creation in progress. Type qcs qmis to view your QMIs.');
       } catch (e) { this.log(`error: ${e}`); }
-    } else if (args.action === ACTIONS.DELETE) {
+    } else if (flags.delete) {
       // Delete a QMI.
       if (flags.keypath) throw new Error(`Cannot supply a --keypath when deleting a QMI.`);
       if (!flags.id) throw new Error(`Must supply an --id when deleting a QMI.`);
@@ -102,18 +88,6 @@ export default class QMIS extends Command {
         await DELETE.qmis(id);
         this.log('QMI deletion successful.');
       } else { this.log('Typed response doesn\'t match QMI IP address, aborting deletion.'); }
-    } else if (args.action === ACTIONS.START || args.action === ACTIONS.STOP) {
-      if (flags.keypath) throw new Error(`Cannot supply a --keypath when powering on a QMI.`);
-      if (!flags.id) throw new Error(`Must supply an --id when deleting a QMI.`);
-
-      const id = parsePositiveInteger(flags.id);
-      if (!id) { throw new Error(`Must supply a positive integer ID when deleting a QMI.`); }
-
-      try {
-        const qmiURLAction = args.action === ACTIONS.START ? 'start' : 'stop';
-        await POST.qmi(id, qmiURLAction);
-        this.log(`QMI successfully ${args.action === ACTIONS.START ? 'powered on' : 'powered off'}`);
-      } catch(e) { this.log(`error: ${e}`); process.exit(1); }
     } else {
       // Query for QMIs.
       const id = flags.id ? parsePositiveInteger(flags.id) : undefined;

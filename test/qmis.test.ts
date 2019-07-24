@@ -1,7 +1,6 @@
 import {expect, test} from '@oclif/test';
 import * as sinon from 'sinon';
 
-import { POST } from '../src/http';
 import * as utils from '../src/utils';
 
 import { key, mockDeleteQMI, mockGetQMI, mockGetQMIs, mockPostQMI } from './test-utils';
@@ -17,7 +16,7 @@ describe('query qmis where qcs qmis', () => {
 
   test
   .stdout()
-  .command(['qmis', 'view'])
+  .command(['qmis'])
   .it('should call qmis command with no arguments and verify command output', ctx => {
     expect(ctx.stdout).to.equal(serializedQMIs);
   });
@@ -30,7 +29,7 @@ describe('query qmis where qcs qmis with --id arg', () => {
 
   test
   .stdout()
-  .command(['qmis', 'view', '--id', '1'])
+  .command(['qmis', '--id', '1'])
   .it('should call qmis command with --id argument and verify command output', ctx => {
     expect(ctx.stdout).to.equal(serializedQMIs);
   });
@@ -47,8 +46,8 @@ describe('create a qmi', () => {
 
   test
   .stdout()
-  .command(['qmis', 'create', '-k', keypath, '-z', 'UTC'])
-  .it(`should call qmis create -k ${keypath}`, ctx => {
+  .command(['qmis', '-c', '-k', keypath, '-z', 'UTC'])
+  .it(`should call qmis -c -k ${keypath}`, ctx => {
     expect(ctx.stdout).to.equal(
       "QMI creation in progress. Type qcs qmis to view your QMIs.\n");
   });
@@ -68,37 +67,8 @@ describe('delete a qmi', () => {
 
   test
   .stdout()
-  .command(['qmis', 'delete', '-i', '1'])
-  .it('should call qmis delete -i 1', ctx => {
+  .command(['qmis', '-d', '-i', '1'])
+  .it('should call qmis -d -i 1', ctx => {
     expect(ctx.stdout).to.equal("QMI deletion successful.\n");
-  });
-});
-
-describe('test the qcs-admin qmi start/stop', () => {
-  let postStub: sinon.SinonStub;
-  beforeEach(() => {
-      postStub = sinon.stub(POST, 'qmi');
-      postStub.returns(new Promise((ok) => {
-          ok();
-      }));
-  });
-  afterEach(() => {
-      postStub.restore();
-  });
-
-test
-  .stdout()
-  .command(['qmis', 'start', '-i', '19'])
-  .it('should call POST qmi/qmiId/start', ctx => {
-      postStub.calledOnceWith(19, 'start');
-      expect(ctx.stdout).to.include("QMI successfully powered on");
-  });
-
-test
-  .stdout()
-  .command(['qmis', 'stop', '-i', '19'])
-  .it('should call POST qmi/qmiId/stop', ctx => {
-      postStub.calledOnceWith(19, 'stop');
-      expect(ctx.stdout).to.include("QMI successfully powered off");
   });
 });
