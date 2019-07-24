@@ -512,3 +512,7 @@ export async function confirmReservationPrompt(numAvailabilities: number): Promi
 export async function confirmCancelReservationPrompt(): Promise<boolean> {
   return cli.confirm('\nCancel reservation(s)? (y)es, (N)o');
 }
+
+export function minimumAvailabilityStartTime(availabilities: Availability[]): string {
+  return availabilities.reduce((min, a) => a.start_time < min ? a.start_time : min, availabilities[0].start_time);
+}

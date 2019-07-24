@@ -7,6 +7,7 @@ import {
   logCredits,
   makeAvailabilityRequest,
   makeReservationRequest,
+  minimumAvailabilityStartTime,
   red,
   reset,
   serializeAvailabilities,
@@ -78,11 +79,19 @@ export default class Reserve extends Command {
         if (!availabilities || availabilities.length < 1) return;
 
         answer = await confirmReservationPrompt(availabilities.length);
-        availreq.start_time = availabilities[0].start_time;
 
         if (answer === 'n') {
+          // Check for another start time based on the earliest time
+          // returned plus the requested duration. This only advances
+          // the time on the earliest available device. For example,
+          // if device A is available at 10:00 and device B is
+          // available at 12:00, this 'n' loop will only show a new
+          // time for device A after 10:00, not for device B after
+          // 12:00. There isn't a straightforward way to advance them
+          // both.
+          const earliestStartTime = minimumAvailabilityStartTime(availabilities);
           availreq.start_time = new Date(
-            new Date(availreq.start_time).getTime() + availreq.duration * 1e3,
+            new Date(earliestStartTime).getTime() + availreq.duration * 1e3,
           ).toISOString();
           continue;
         } else if (answer === 'q') {
@@ -93,6 +102,7 @@ export default class Reserve extends Command {
         // Assume answer is a number specifying the index of the availability to book.
         let availability;
 
+        availreq.start_time = availabilities[answer as number].start_time;
         availability = availabilities[answer as number];
 
         if (credits.available_credit - availability.expected_price < 0) {
