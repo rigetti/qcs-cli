@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import {
   convertDurationStringToSeconds,
   convertSecondsToDurationString,
+  minimumAvailabilityStartTime,
   parseNonNegativeInteger,
   parsePositiveInteger,
   parseValueOrValues,
@@ -53,4 +54,45 @@ describe('test convertSecondsToDurationString', () => {
     expect(convertSecondsToDurationString(60 * 60)).to.equal('1.00h');
     expect(convertSecondsToDurationString(1.5 * 60 * 60)).to.equal('1.50h');
   });
+});
+
+describe('test minimumAvailabilityStartTime', () => {
+  it('should return the minimum start_time of a list of Availability objects', () => {
+    const expected = '2019-07-01T12:00:00+00:00'
+    const starts = ['2019-12-29T12:00:00+00:00',
+                    expected,
+                    '2019-11-01T12:00:00+00:00',
+                    '2019-12-26T12:00:00+00:00'];
+
+    const availabilities = starts.map((start_time) => {
+      return {
+        lattice_name: 'MyLattice',
+        start_time: start_time,
+        end_time: new Date(new Date(start_time).getTime() + 3600 * 1e3).toISOString(),
+        expected_price: 100
+      }
+    });
+
+    const a0 = availabilities;
+    const a1 = [availabilities[3],
+                availabilities[2],
+                availabilities[1],
+                availabilities[0]];
+    const a2 = [availabilities[0],
+                availabilities[2],
+                availabilities[1],
+                availabilities[3]];
+    const a3 = [availabilities[0],
+                availabilities[1],
+                availabilities[3],
+                availabilities[2]];
+    const a4 = [availabilities[3],
+                availabilities[2],
+                availabilities[0],
+                availabilities[1]];
+
+    [a0, a1, a2, a3, a4].map((avail) => {
+      expect(minimumAvailabilityStartTime(avail)).to.equal(expected);
+    });
+  })
 });
