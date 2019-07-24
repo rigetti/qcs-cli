@@ -195,6 +195,25 @@ export const POST = {
       throw new Error(`Server response: "${response.status}"`);
     }
   },
+  qmi: async (
+    qmiId: number, action: 'start' | 'stop', payload: any = undefined,
+  ): Promise<request.Response> => {
+    const headers: { [key: string]: string } = {
+      'X-User-Id': config.userToken,
+    };
+    const options = {
+      headers,
+      method: 'POST',
+      url: `${config.publicForestServer}/qmis/${qmiId}/${action}`,
+      body: payload,
+      json: true,
+    };
+    return new Promise((resolve, _) => {
+      request(options, (_, response) => {
+        resolve(response);
+      });
+    });
+  },
 };
 
 export async function _delete(path: string, data: any = {}) {
