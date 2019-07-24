@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import * as moment from 'moment';
 import * as nock from 'nock';
 
 import * as config from '../src/config';
@@ -174,12 +175,37 @@ export const availability = {
   expected_price: 100,
 } as Availability;
 
+const startTime2 = moment(availabilityRequest.start_time).add(15, 'minute').toISOString();
+export const startTimeDate2 = dtFmt(new Date(startTime2));
+const endTime2 = moment(availabilityRequest.start_time).add(15, 'minute').add(availabilityRequest.duration, 'second').toISOString();
+export const endTimeDate2 = dtFmt(new Date(endTime2));
+
+export const availability2 = {
+  lattice_name: availabilityRequest.lattice_name,
+  start_time: startTime2,
+  end_time: endTime2,
+  expected_price: 100,
+} as Availability;
+
+export const reservationsResponse2 = {
+  'reservations': [{
+    id: 0,
+    user_email: 'isidor.rabi@bloch.org',
+    lattice_name: latticeName,
+    start_time: startTime2,
+    end_time: endTime2,
+    status: 'ACTIVE',
+    duration: 100,
+    price_booked: 100,
+  }],
+};
+
 export const availabilitiesResponse = {
   availability: [availability],
 } as AvailabilitiesResponse;
 
 export const twoAvailabilitiesResponse = {
-  availability: [availability, availability],
+  availability: [availability, availability2],
 } as AvailabilitiesResponse;
 
 export function mockGetAvailability() {
@@ -206,11 +232,11 @@ export function mockDeleteReservations() {
       .reply(202);
 }
 
-export function mockPostReservations(expectedData: ReservationRequest) {
+export function mockPostReservations(expectedData: ReservationRequest, res: { reservations: Reservation[] } = reservationsResponse) {
   return nock(config.publicForestServer)
     .post(URLS.schedule, (data: ReservationRequest) => {
       expect(data).to.eql(expectedData);
       return true;
     })
-    .reply(200, reservationsResponse);
+    .reply(200, res);
 }

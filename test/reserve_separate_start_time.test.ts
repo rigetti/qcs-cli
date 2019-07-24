@@ -1,31 +1,21 @@
-import {expect, test} from '@oclif/test';
+import { expect, test } from '@oclif/test';
 import * as sinon from 'sinon';
 
 import * as utils from '../src/utils';
 import {
+         availability2,
          endTimeDate,
          endTimeDate2,
          latticeName,
-         mockGetAvailability,
          mockGetAvailabilityReturnTwo,
          mockGetCredits,
          mockPostReservations,
          reservationNotes,
          reservationRequest,
+         reservationsResponse2,
          startTimeDate,
          startTimeDate2,
 } from './test-utils';
-
-const singleOutput = `Available credits: $8.00
-
-The next available compute block is:
-
-START                    END                      DURATION  LATTICE            PRICE
-${startTimeDate}${endTimeDate}1.00h     test-lattice       $1.00
-
-Booking reservation(s)...
-Reservation(s) confirmed, run 'qcs reservations' to see the latest schedule.
-`;
 
 const pluralOutput = `Available credits: $8.00
 
@@ -39,16 +29,20 @@ Booking reservation(s)...
 Reservation(s) confirmed, run 'qcs reservations' to see the latest schedule.
 `;
 
-describe('test the qcs reserve command', () => {
-  describe('select first option', () => {
+describe('test the qcs reserve command with separate start times', () => {
+  describe('select second option', () => {
     let confirmReserveStub: sinon.SinonStub;
     beforeEach(() => {
       confirmReserveStub = sinon.stub(utils, 'confirmReservationPrompt');
       mockGetCredits();
-      mockGetAvailability();
       mockGetAvailabilityReturnTwo();
-      mockPostReservations(reservationRequest);
-      confirmReserveStub.returns(new Promise((ok) => ok(0)));
+      const request2 = {
+        ...reservationRequest,
+        start_time: availability2.start_time,
+        end_time: availability2.end_time,
+      };
+      mockPostReservations(request2, reservationsResponse2);
+      confirmReserveStub.returns(new Promise((ok) => ok(1)));
     });
     afterEach(() => {
       confirmReserveStub.restore();
@@ -57,14 +51,7 @@ describe('test the qcs reserve command', () => {
     test
       .stdout()
       .command(['reserve', '-l', latticeName, '-t', '60m', '-n', reservationNotes])
-      .it('should call the reserve command and verify output for a single availability', ctx => {
-        expect(ctx.stdout).to.equal(singleOutput);
-      });
-
-    test
-      .stdout()
-      .command(['reserve', '-l', latticeName, '-t', '60m', '-n', reservationNotes])
-      .it('should call the reserve command and verify output for a multiple returned availabilities', ctx => {
+      .it('should request accurate start time from availability2', (ctx) => {
         expect(ctx.stdout).to.equal(pluralOutput);
       });
   });

@@ -78,7 +78,6 @@ export default class Reserve extends Command {
         if (!availabilities || availabilities.length < 1) return;
 
         answer = await confirmReservationPrompt(availabilities.length);
-        availreq.start_time = availabilities[0].start_time;
 
         if (answer === 'n') {
           availreq.start_time = new Date(
@@ -94,6 +93,7 @@ export default class Reserve extends Command {
         let availability;
 
         availability = availabilities[answer as number];
+        availreq.start_time = availability.start_time;
 
         if (credits.available_credit - availability.expected_price < 0) {
           const line = `${red}\nAlert! This reservation's price is more than your current available balance. Booking it would result in a usage bill. If you believe this is in error, please contact support@rigetti.com.${reset}`;
