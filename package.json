@@ -96,6 +96,9 @@
     "version": "oclif-dev readme && git add README.md"
   },
   "types": "lib/index.d.ts",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "babel": {
     "presets": [
       "stage-3",
