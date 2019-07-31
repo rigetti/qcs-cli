@@ -42,46 +42,52 @@ export type DevicesResponse = { devices: DevicesByName } | ErrorResponse;
 export type QMIResponse = { qmi: QMI } | ErrorResponse;
 export type QMIsResponse = { qmis: QMI[] } | ErrorResponse;
 
-export async function _request(path: string, data: any = {}, method: string) {
+type PromiseRequestCallback = (ok: (value?: any) => void, err: (value?: any) => void) => request.RequestCallback;
+const defaultHandler: PromiseRequestCallback = (ok, err) => (e, r, b) => {
+  if (e) {
+    err('There was an error communicating with the server');
+  } else {
+    if (r.statusCode in KNOWN_CODES) {
+      if (typeof (b) === 'object' || r.statusCode === 202) {
+        ok(b);
+      } else if (r.statusCode === 201) {
+        ok();
+      } else if (r.statusCode >= 400) {
+        err(KNOWN_CODES[r.statusCode]);
+      } else {
+        err('Server did not return a valid JSON response');
+      }
+    } else {
+      err(`Server responded with unexpected status ${r.statusCode} ${r.statusMessage}`);
+    }
+  }
+};
+
+export async function _request<T = StatusResponse>(opts: Partial<request.Options> = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
   const options = {
-    method,
-    url: config.publicForestServer + path,
-    body: data,
+    baseUrl: config.publicForestServer,
     json: true,
     headers: {
       'X-User-Id': config.userToken,
     },
-  };
+    ...opts,
+  } as request.Options;
 
   return new Promise((ok, err) => {
-    request(options, (e, r, b) => {
-      if (e) {
-        err('There was an error communicating with the server');
-      } else {
-        if (r.statusCode in KNOWN_CODES) {
-          if (typeof(b) === 'object' || r.statusCode === 202) {
-            ok(b);
-          } else if (r.statusCode === 201) {
-            ok();
-          } else if (r.statusCode >= 400) {
-            err(KNOWN_CODES[r.statusCode]);
-          } else {
-            err('Server did not return a valid JSON response');
-          }
-        } else {
-          err(`Server responded with unexpected status ${r.statusCode} ${r.statusMessage}`);
-        }
-      }
-    });
+    request(options, callback(ok, err));
   });
 }
 
-export async function _get(path: string, data: any = {}) {
-  return await _request(path, data, 'get') as StatusResponse;
+export async function _get<T = StatusResponse>(uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
+  return _request({ uri, body, method: 'get' }, callback);
 }
 
-export async function _post(path: string, data: any = {}) {
-  return await _request(path, data, 'post') as StatusResponse;
+export async function _post<T = StatusResponse>(uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
+  return _request({ uri, body, method: 'post' }, callback);
+}
+
+export async function _delete<T = StatusResponse>(uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
+  return _request({ uri, body, method: 'delete' }, callback);
 }
 
 export function _required_property(obj: {[key: string]: any}, prop: string) {
@@ -196,29 +202,17 @@ export const POST = {
     }
   },
   qmi: async (
-    qmiId: number, action: 'start' | 'stop', payload: any = undefined,
+    qmiId: number, action: 'start' | 'stop', body: any = undefined,
   ): Promise<request.Response> => {
-    const headers: { [key: string]: string } = {
-      'X-User-Id': config.userToken,
-    };
-    const options = {
-      headers,
-      method: 'POST',
-      url: `${config.publicForestServer}/qmis/${qmiId}/${action}`,
-      body: payload,
-      json: true,
-    };
-    return new Promise((resolve, _) => {
-      request(options, (_, response) => {
-        resolve(response);
-      });
+    return _post<request.Response>(`/qmis/${qmiId}/${action}`, body, (ok, err) => (e, res, _body) => {
+      if (e) {
+        err(e);
+        return;
+      }
+      ok(res);
     });
   },
 };
-
-export async function _delete(path: string, data: any = {}) {
-  return await _request(path, data, 'delete') as StatusResponse;
-}
 
 export const DELETE = {
   schedule: async (reservationIds: number[]) => {

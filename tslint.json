@@ -17,6 +17,6 @@
     "no-trailing-whitespace": true,
     "semicolon": true,
     "trailing-comma": [true, { "multiline": "always", "singleline": "never" }],
-    "variable-name": [true, "ban-keywords", "check-format", "allow-pascal-case"]
+    "variable-name": [true, "ban-keywords", "check-format", "allow-pascal-case", "allow-leading-underscore"]
   }
 }
