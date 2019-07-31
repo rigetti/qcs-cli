@@ -239,7 +239,9 @@ export function serializeLattices(lattices: { [name: string]: Lattice }) {
 
 export interface QMI {
   id: number;
-  ip: string;
+  openstack_status: {
+    ip: string,
+  };
   status: string;
 }
 
@@ -250,7 +252,8 @@ export interface QMIRequest {
 export const QMITitles = `ID${' '.repeat(10)}IP${' '.repeat(14)}STATUS`;
 
 export function serializeQMI(qmi: QMI) {
-  return `${qmi.id.toString().padEnd(12)}${(qmi.ip || '').padEnd(16)}${qmi.status}`;
+  const ip = qmi.openstack_status && qmi.openstack_status.ip;
+  return `${qmi.id.toString().padEnd(12)}${(ip || '').padEnd(16)}${qmi.status}`;
 }
 
 export function serializeQMIs(qmis: QMI[] | undefined) {
@@ -280,7 +283,8 @@ Deleting your QMI will also delete your associated SSH keys. This action cannot 
 This will not affect your credits or realized usage, however it will cancel all current and future reservations associated with this QMI.
 
 ${reset}To confirm deletion, please type the IP address of the QMI (or ctrl-C to cancel)`);
-  return typedIP === qmi.ip;
+  const ip = qmi.openstack_status && qmi.openstack_status.ip;
+  return typedIP === ip;
 }
 
 /*
