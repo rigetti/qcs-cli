@@ -97,7 +97,7 @@ export function mockGetLattices() {
 */
 
 export const key = 'some-key';
-const qmi = {id: 1, ip: '0.0.0.0', status: 'ACTIVE'};
+const qmi = { id: 1, openstack_status: { ip: '0.0.0.0' }, status: 'ACTIVE'};
 const qmiResponse = { qmi } as QMIResponse;
 const qmisResponse = { qmis: [qmi] } as QMIsResponse;
 

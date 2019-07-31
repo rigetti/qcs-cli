@@ -4,6 +4,7 @@
   "jsRules": {},
   "rules": {
     "ban-comma-operator": true,
+    "max-line-length": [true, { "limit": 120 }],
     "class-name": true,
     "no-console": false,
     "function-name": false,
