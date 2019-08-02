@@ -447,8 +447,13 @@ export function separateCurrentUpcomingReservations(
 }
 
 export function makeAvailabilityRequest(startTime: string, duration: string, latticeName?: string): AvailabilityRequest {
+  const startMoment = convertNaturalDateStringToMoment(startTime);
+  const permitOffset = moment.duration(1, 'minute');
+  if (startMoment < moment().subtract(permitOffset)) {
+    throw new Error(`Must use a date in the future to make availability request. Received ${startMoment.toISOString()}.`);
+  }
   return {
-    start_time: convertNaturalDateStringToMoment(startTime).toDate().toISOString(),
+    start_time: startMoment.toDate().toISOString(),
     duration: convertDurationStringToSeconds(duration),
     lattice_name: latticeName,
   };
