@@ -66,7 +66,7 @@ describe('test the qcs reserve command', () => {
     .stdout()
     .command(['reserve', '-l', latticeName, '-t', '60m', '-n', reservationNotes, '-s', moment().subtract(moment.duration(5, 'minutes')).toISOString()])
     .catch((err) => {
-      expect(err.message).to.include('Must use a date in the future to make availability request');
+      expect(err.message).to.equal('Must use future date to make availability request. Pass `--allow_past` to bypass this validation.');
     })
     .it('should catch date validation error', () => {
       expect(true).to.be.true;
@@ -75,7 +75,7 @@ describe('test the qcs reserve command', () => {
   test
     .stdout()
     .command(['reserve', '-l', latticeName, '-t', '60m', '-n', reservationNotes, '-s', moment().subtract(moment.duration(5, 'minutes')).toISOString(), '-p'])
-    .it('should catch date validation error', () => {
+    .it('should bypass date validation error', () => {
       // just checking no error is thrown here.
       expect(true).to.be.true;
     });

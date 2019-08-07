@@ -9,6 +9,7 @@ import {
   makeReservationRequest,
   minimumAvailabilityStartTime,
   red,
+  ReserveFutureDateOnly,
   reset,
   serializeAvailabilities,
 } from '../utils';
@@ -54,7 +55,7 @@ export default class Reserve extends Command {
     }),
     allow_past: flags.boolean({
       char: 'p',
-      description: 'Pass this flag to reserve with a start time in the past.',
+      description: 'Pass this flag to bypass start_time validation.',
       required: false,
       default: false,
     }),
@@ -70,7 +71,15 @@ export default class Reserve extends Command {
       return;
     }
 
-    const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice, flags.allow_past);
+    let availreq;
+    try {
+      availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice, flags.allow_past);
+    } catch (err) {
+      if (err === ReserveFutureDateOnly) {
+        throw new Error('Must use future date to make availability request. Pass `--allow_past` to bypass this validation.');
+      }
+      throw err;
+    }
 
     try {
       let answer;
