@@ -52,6 +52,12 @@ export default class Reserve extends Command {
       required: false,
       default: '',
     }),
+    allow_past: flags.boolean({
+      char: 'p',
+      description: 'Pass this flag to reserve with a start time in the past.',
+      required: false,
+      default: false,
+    }),
   };
 
   async run() {
@@ -64,7 +70,7 @@ export default class Reserve extends Command {
       return;
     }
 
-    const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
+    const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice, flags.allow_past);
 
     try {
       let answer;

@@ -446,10 +446,10 @@ export function separateCurrentUpcomingReservations(
   return [current, upcoming];
 }
 
-export function makeAvailabilityRequest(startTime: string, duration: string, latticeName?: string): AvailabilityRequest {
+export function makeAvailabilityRequest(startTime: string, duration: string, latticeName?: string, allowPast = false): AvailabilityRequest {
   const startMoment = convertNaturalDateStringToMoment(startTime);
   const permitOffset = moment.duration(1, 'minute');
-  if (startMoment < moment().subtract(permitOffset)) {
+  if (!allowPast && startMoment < moment().subtract(permitOffset)) {
     throw new Error(`Must use a date in the future to make availability request. Received ${startMoment.toISOString()}.`);
   }
   return {

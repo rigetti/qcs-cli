@@ -71,4 +71,12 @@ describe('test the qcs reserve command', () => {
     .it('should catch date validation error', () => {
       expect(true).to.be.true;
     });
+
+  test
+    .stdout()
+    .command(['reserve', '-l', latticeName, '-t', '60m', '-n', reservationNotes, '-s', moment().subtract(moment.duration(5, 'minutes')).toISOString(), '-p'])
+    .it('should catch date validation error', () => {
+      // just checking no error is thrown here.
+      expect(true).to.be.true;
+    });
 });
