@@ -170,7 +170,8 @@ export const availabilityRequest = {
 export const availability = {
   lattice_name: availabilityRequest.lattice_name,
   start_time: availabilityRequest.start_time,
-  end_time: (new Date(Number(new Date(availabilityRequest.start_time)) + availabilityRequest.duration * 1e3)).toISOString(),
+  end_time: (new Date(Number(new Date(availabilityRequest.start_time)) +
+    availabilityRequest.duration * 1e3)).toISOString(),
   expected_price: 100,
 } as Availability;
 

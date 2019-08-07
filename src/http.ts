@@ -102,6 +102,11 @@ export async function _delete<T = StatusResponse>(
   return _request({ uri, body, method: 'delete' }, callback);
 }
 
+export async function _put<T = StatusResponse>(
+  uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
+  return _request({ uri, body, method: 'put' }, callback);
+}
+
 export function _required_property(obj: {[key: string]: any}, prop: string) {
   if (!(prop in obj)) {
     throw new Error(`Missing required property '${prop}'`);
