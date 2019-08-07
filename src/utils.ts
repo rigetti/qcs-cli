@@ -49,7 +49,8 @@ export function parseValueOrValues(values: any): any[] {
 }
 
 export function convertDurationStringToSeconds(durationStr: string): number {
-  const pattern = /^([0-9]+\.?[0-9]*)\s*(hours|hour|hrs|hr|h|minutes|minute|mins|min|m|seconds|second|secs|sec|s)\s*$/gim;
+  const pattern =
+    /^([0-9]+\.?[0-9]*)\s*(hours|hour|hrs|hr|h|minutes|minute|mins|min|m|seconds|second|secs|sec|s)\s*$/gim;
   const matchData = pattern.exec(durationStr);
 
   if (!matchData) {
@@ -109,7 +110,8 @@ export function convertSecondsToDurationString(seconds: number) {
 /**
  * Parses a naturally formatted string of text to a moment date object.
  *
- * @param dateString A naturally formatted date string (e.g., "now", "friday at 5pm", "Dec 8 @ 2:15pm", "12/08/18 2:30 PST")
+ * @param dateString A naturally formatted date string (e.g., "now", "friday at 5pm",
+ * "Dec 8 @ 2:15pm", "12/08/18 2:30 PST")
  * @param flag Optional string of CLI flag to give better error message.
  */
 export function convertNaturalDateStringToMoment(
@@ -239,7 +241,9 @@ export function serializeLattices(lattices: { [name: string]: Lattice }) {
 
 export interface QMI {
   id: number;
-  ip: string;
+  openstack_status: {
+    ip: string,
+  };
   status: string;
 }
 
@@ -250,7 +254,8 @@ export interface QMIRequest {
 export const QMITitles = `ID${' '.repeat(10)}IP${' '.repeat(14)}STATUS`;
 
 export function serializeQMI(qmi: QMI) {
-  return `${qmi.id.toString().padEnd(12)}${(qmi.ip || '').padEnd(16)}${qmi.status}`;
+  const ip = qmi.openstack_status && qmi.openstack_status.ip;
+  return `${qmi.id.toString().padEnd(12)}${(ip || '').padEnd(16)}${qmi.status}`;
 }
 
 export function serializeQMIs(qmis: QMI[] | undefined) {
@@ -277,10 +282,12 @@ export async function confirmDeleteQMI(qmi: QMI): Promise<boolean> {
   const typedIP = await cli.prompt(
     `\n${yellow}Alert! You have requested to delete your QMI. Are you absolutely sure?
 Deleting your QMI will also delete your associated SSH keys. This action cannot be undone.
-This will not affect your credits or realized usage, however it will cancel all current and future reservations associated with this QMI.
+This will not affect your credits or realized usage, however it will cancel all current and
+future reservations associated with this QMI.
 
 ${reset}To confirm deletion, please type the IP address of the QMI (or ctrl-C to cancel)`);
-  return typedIP === qmi.ip;
+  const ip = qmi.openstack_status && qmi.openstack_status.ip;
+  return typedIP === ip;
 }
 
 /*
@@ -331,7 +338,8 @@ export const availabilityTitles =
 const currentHeader = 'CURRENTLY RUNNING COMPUTE BLOCKS';
 const upcomingHeader = 'UPCOMING COMPUTE BLOCKS';
 
-export function serializeReservations(reservations: Reservation[], serializeReservationHandler?: (arg0: Reservation) => string, titles?: string) {
+export function serializeReservations(
+  reservations: Reservation[], serializeReservationHandler?: (arg0: Reservation) => string, titles?: string) {
   if (reservations.length === 0) {
     return 'No reservations found.';
   }
@@ -400,7 +408,8 @@ export function serializeAvailabilities(availabilities: Availability[]) {
     }
 
     let line = '';
-    line += availabilities.length > 1 ? `\nThe next available compute blocks are:\n\n` : `\nThe next available compute block is:\n\n`;
+    line += availabilities.length > 1 ?
+      `\nThe next available compute blocks are:\n\n` : `\nThe next available compute block is:\n\n`;
     // Only add the ID column if more than one available slot is present
     line += (availabilities.length > 1) ? 'ID'.padEnd(6) : '';
     line += `${availabilityTitles}\n`;
@@ -446,7 +455,8 @@ export function separateCurrentUpcomingReservations(
   return [current, upcoming];
 }
 
-export function makeAvailabilityRequest(startTime: string, duration: string, latticeName?: string): AvailabilityRequest {
+export function makeAvailabilityRequest(
+  startTime: string, duration: string, latticeName?: string): AvailabilityRequest {
   return {
     start_time: convertNaturalDateStringToMoment(startTime).toDate().toISOString(),
     duration: convertDurationStringToSeconds(duration),
@@ -454,12 +464,14 @@ export function makeAvailabilityRequest(startTime: string, duration: string, lat
   };
 }
 
-export function makeReservationRequest(availabilityRequest: AvailabilityRequest, latticeName: string, notes: string): ReservationRequest {
+export function makeReservationRequest(
+  availabilityRequest: AvailabilityRequest, latticeName: string, notes: string): ReservationRequest {
   return {
     notes,
     lattice_name: latticeName,
     start_time: availabilityRequest.start_time,
-    end_time: (new Date(Number(new Date(availabilityRequest.start_time)) + availabilityRequest.duration * 1e3)).toISOString(),
+    end_time: (new Date(Number(new Date(availabilityRequest.start_time)) +
+      availabilityRequest.duration * 1e3)).toISOString(),
   };
 }
 
@@ -501,8 +513,9 @@ export async function confirmReservationPrompt(numAvailabilities: number): Promi
     formattedAnswer !== 'n' &&
     formattedAnswer !== 'q'
   ) {
+    const options = numAvailabilities > 1 ? "the ID of the availability to book" : "'y' to book";
     console.log(
-      `Invalid response. Please enter a response of either ${numAvailabilities > 1 ? "the ID of the availability to book" : "'y' to book"}, 'n' to continue looking, or 'q' to quit.`,
+      `Invalid response. Please enter a response of either ${options}, 'n' to continue looking, or 'q' to quit.`,
     );
     formattedAnswer = confirmReservationPrompt(numAvailabilities);
   }
