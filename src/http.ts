@@ -43,6 +43,14 @@ export type QMIResponse = { qmi: QMI } | ErrorResponse;
 export type QMIsResponse = { qmis: QMI[] } | ErrorResponse;
 
 type PromiseRequestCallback = (ok: (value?: any) => void, err: (value?: any) => void) => request.RequestCallback;
+/**
+ * defaultHandler will return a request.RequestCallback which will resolve promise callbacks
+ * according to expected HTTP response codes returned from server. request.RequestCallback
+ * accepts an error, response, and response body. WARN: Some 2xx codes will
+ * result in failure by default, such as 204 - in these cases write your own response handler.
+ * @param ok Promise resolve callback.
+ * @param err Promise failure callback.
+ */
 const defaultHandler: PromiseRequestCallback = (ok, err) => (e, r, b) => {
   if (e) {
     err('There was an error communicating with the server');
