@@ -63,7 +63,8 @@ const defaultHandler: PromiseRequestCallback = (ok, err) => (e, r, b) => {
   }
 };
 
-export async function _request<T = StatusResponse>(opts: Partial<request.Options> = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
+export async function _request<T = StatusResponse>(
+  opts: Partial<request.Options> = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
   const options = {
     baseUrl: config.publicForestServer,
     json: true,
@@ -78,15 +79,18 @@ export async function _request<T = StatusResponse>(opts: Partial<request.Options
   });
 }
 
-export async function _get<T = StatusResponse>(uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
+export async function _get<T = StatusResponse>(
+  uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
   return _request({ uri, body, method: 'get' }, callback);
 }
 
-export async function _post<T = StatusResponse>(uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
+export async function _post<T = StatusResponse>(
+  uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
   return _request({ uri, body, method: 'post' }, callback);
 }
 
-export async function _delete<T = StatusResponse>(uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
+export async function _delete<T = StatusResponse>(
+  uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
   return _request({ uri, body, method: 'delete' }, callback);
 }
 

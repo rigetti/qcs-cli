@@ -106,7 +106,9 @@ export default class Reserve extends Command {
         availability = availabilities[answer as number];
 
         if (credits.available_credit - availability.expected_price < 0) {
-          const line = `${red}\nAlert! This reservation's price is more than your current available balance. Booking it would result in a usage bill. If you believe this is in error, please contact support@rigetti.com.${reset}`;
+          const line = `${red}
+Alert! This reservation's price is more than your current available balance.
+Booking it result in a usage bill.If you believe this is in error, please contact support@rigetti.com.${ reset }`;
           console.log(line);
           return;
         }

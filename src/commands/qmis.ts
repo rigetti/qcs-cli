@@ -35,7 +35,8 @@ export default class QMIS extends Command {
     }),
     timezone: flags.string({
       char: 'z',
-      description: 'Value to which the QMI timezone should be set, e.g. America/Los_Angeles. Defaults to the system timezone of the machine on which the CLI is being run.',
+      description: 'Value to which the QMI timezone should be set, e.g. America/Los_Angeles. Defaults ' +
+        'to the system timezone of the machine on which the CLI is being run.',
       required: false,
     }),
     delete: flags.boolean({
