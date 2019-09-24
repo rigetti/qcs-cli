@@ -44,7 +44,7 @@ export default class Reserve extends Command {
       description:
         'Duration of booked compute time. (h, hr, hours, m, min, minutes, s, sec, seconds, etc)',
       required: true,
-      default: '30m',
+      default: '15m',
     }),
     notes: flags.string({
       char: 'n',
