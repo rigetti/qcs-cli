@@ -1,4 +1,4 @@
-import { Command, flags } from '@oclif/command';
+import { flags } from '@oclif/command';
 
 import {
   confirmCancelReservationPrompt,
@@ -6,6 +6,7 @@ import {
   serializeReservations,
 } from '../utils';
 
+import CommandWithCatch from '../command-with-catch';
 import { DELETE, GET } from '../http';
 
 const STATIC_EXAMPLE = `Cancel a reservation, or a list of reservations.
@@ -18,7 +19,7 @@ $ qcs cancel --id 1
 $ qcs cancel --id '[1, 2]'
 `;
 
-export default class Cancel extends Command {
+export default class Cancel extends CommandWithCatch {
   static description = 'Cancel reservations in the compute schedule.';
 
   static examples = [STATIC_EXAMPLE];
@@ -36,27 +37,23 @@ export default class Cancel extends Command {
     const { flags } = this.parse(Cancel);
     const ids = parseValueOrValues(flags.id);
 
-    try {
-      const resToCancel = (await GET.schedule({ ids })).filter(
-        r => r.status === 'ACTIVE',
-      );
-      if (resToCancel.length === 0) {
-        throw new Error('reservation(s) found, but none that are active');
-      }
-
-      this.log(serializeReservations(resToCancel));
-
-      const answer = await confirmCancelReservationPrompt();
-      if (!answer) {
-        throw new Error('aborting cancellation');
-      }
-
-      await DELETE.schedule(ids);
-      this.log(
-        "Reservation(s) cancelled. Type 'qcs reservations' to see the latest schedule.",
-      );
-    } catch (e) {
-      this.log(e);
+    const resToCancel = (await GET.schedule({ ids })).filter(
+      r => r.status === 'ACTIVE',
+    );
+    if (resToCancel.length === 0) {
+      this.logErrorAndExit('reservation(s) found, but none that are active');
     }
+
+    this.log(serializeReservations(resToCancel));
+
+    const answer = await confirmCancelReservationPrompt();
+    if (!answer) {
+      this.logErrorAndExit('aborting cancellation');
+    }
+
+    await DELETE.schedule(ids);
+    this.log(
+      "Reservation(s) cancelled. Type 'qcs reservations' to see the latest schedule.",
+    );
   }
 }

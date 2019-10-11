@@ -1,6 +1,6 @@
-import * as request from 'request';
-
-import * as config from './config';
+import * as request from 'request-promise-native';
+import { QCSConfig } from './config';
+import logger from './logger';
 import {
   Availability,
   AvailabilityRequest,
@@ -14,6 +14,9 @@ import {
   ReservationRequest,
 } from './utils';
 
+let config: QCSConfig;
+export const setConfig = (c: QCSConfig) => config = c;
+
 export const URLS = {
   schedule: '/schedule',
   nextAvailable: '/schedule/next_available',
@@ -23,93 +26,65 @@ export const URLS = {
   devices: '/devices',
   credits: '/users/credits',
   qmis: '/qmis',
+  graphql: '/graphql',
 };
 
-const KNOWN_CODES = { 200: 'OK', 201: 'Resource created', 202: 'Resource marked for deletion',
-                      400: 'Bad request', 401: 'Unauthorized', 403: 'Resource forbidden',
-                      404: 'Not found' } as { [key: number]: string };
-
-type ErrorResponse = { error_type: string; status: string };
-type StatusResponse = { status: string } | ErrorResponse;
+export interface ErrorResponse {
+  error_type: string;
+  status: string;
+  status_code?: number;
+}
 export type AvailabilitiesResponse = {availability: Availability[]} | ErrorResponse;
 export type ReservationsResponse =
   | { reservations: Reservation[]; requested_reservations: Reservation[] }
   | ErrorResponse;
-export type LatticesByName = { [name: string]: Lattice };
+export interface LatticesByName { [name: string]: Lattice; }
+export interface DevicesByName { [name: string]: Device; }
 export type LatticesResponse = { lattices: LatticesByName } | ErrorResponse;
-export type DevicesByName = { [name: string]: Device };
 export type DevicesResponse = { devices: DevicesByName } | ErrorResponse;
 export type QMIResponse = { qmi: QMI } | ErrorResponse;
 export type QMIsResponse = { qmis: QMI[] } | ErrorResponse;
 
-type PromiseRequestCallback = (ok: (value?: any) => void, err: (value?: any) => void) => request.RequestCallback;
-/**
- * defaultHandler will return a request.RequestCallback which will resolve promise callbacks
- * according to expected HTTP response codes returned from server. request.RequestCallback
- * accepts an error, response, and response body. WARN: Some 2xx codes will
- * result in failure by default, such as 204 - in these cases write your own response handler.
- * @param ok Promise resolve callback.
- * @param err Promise failure callback.
- */
-const defaultHandler: PromiseRequestCallback = (ok, err) => (e, r, b) => {
-  if (e) {
-    err('There was an error communicating with the server');
-  } else {
-    if (r.statusCode in KNOWN_CODES) {
-      if (typeof (b) === 'object' || r.statusCode === 202) {
-        ok(b);
-      } else if (r.statusCode === 201) {
-        ok();
-      } else if (r.statusCode >= 400) {
-        err(KNOWN_CODES[r.statusCode]);
-      } else {
-        err('Server did not return a valid JSON response');
-      }
-    } else {
-      err(`Server responded with unexpected status ${r.statusCode} ${r.statusMessage}`);
+export interface GQLError {
+  message: string;
+  extensions?: ErrorResponse;
+}
+
+export interface GQLResponse<T> {
+  data: T;
+  errors: GQLError[];
+}
+
+export const graphql = async <T>(payload: object): Promise<GQLResponse<T>> => {
+  const opts = {
+    method: 'POST',
+    uri: URLS.graphql,
+    body: payload,
+  };
+  const { data, errors } = await config.request<GQLResponse<T>>(opts);
+  if (someGQLErrorIsUserUnauthorized(errors)) {
+    await config.refreshAuthToken();
+    return config.request(opts);
+  }
+  return { data, errors };
+};
+
+export const graphqlWithErrorLogging = async <T>(payload: object): Promise<T | undefined> => {
+  try {
+    const { data, errors } = await graphql<T>(payload);
+    if (errors && errors.length > 0) {
+      logGQLErrors(errors);
+      return;
     }
+    return data;
+  } catch (err) {
+    await handleGQLError(err);
   }
 };
 
-export async function _request<T = StatusResponse>(
-  opts: Partial<request.Options> = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
-  const options = {
-    baseUrl: config.publicForestServer,
-    json: true,
-    headers: {
-      'X-User-Id': config.userToken,
-    },
-    ...opts,
-  } as request.Options;
-
-  return new Promise((ok, err) => {
-    request(options, callback(ok, err));
-  });
-}
-
-export async function _get<T = StatusResponse>(
-  uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
-  return _request({ uri, body, method: 'get' }, callback);
-}
-
-export async function _post<T = StatusResponse>(
-  uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
-  return _request({ uri, body, method: 'post' }, callback);
-}
-
-export async function _delete<T = StatusResponse>(
-  uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
-  return _request({ uri, body, method: 'delete' }, callback);
-}
-
-export async function _put<T = StatusResponse>(
-  uri: string, body: any = {}, callback: PromiseRequestCallback = defaultHandler): Promise<T> {
-  return _request({ uri, body, method: 'put' }, callback);
-}
-
 export function _required_property(obj: {[key: string]: any}, prop: string) {
   if (!(prop in obj)) {
-    throw new Error(`Missing required property '${prop}'`);
+    throw new Error(`The server responded unexpected. Expected property '${prop}' to be present.`);
   }
 
   return obj[prop];
@@ -122,81 +97,65 @@ export const GET = {
     startTime,
     endTime,
   }: ReservationGetRequest = {}): Promise<Reservation[]> => {
-    const response = (await _get(URLS.schedule, {
-      ids,
-      user_emails: userEmails ? userEmails.map(e => e.toLowerCase()) : undefined,
-      start_time: startTime,
-      end_time: endTime,
+    const response = (await config.request({
+      uri: URLS.schedule,
+      body: {
+        ids,
+        user_emails: userEmails ? userEmails.map(e => e.toLowerCase()) : undefined,
+        start_time: startTime,
+        end_time: endTime,
+      },
     })) as ReservationsResponse;
-    if ('error_type' in response) {
-      if (response.error_type === 'reservation_not_found') {
-        return [];
-      }
-
-      throw new Error(`Server response: "${response.status}"`);
-    } else {
-      return _required_property(response, 'reservations');
-    }
+    return _required_property(response, 'reservations');
   },
   availability: async (availreq: AvailabilityRequest): Promise<Availability[]> => {
-    const response = (await _get(URLS.nextAvailable, availreq)) as AvailabilitiesResponse;
-
-    if ('error_type' in response) {
-      throw new Error(`Server response: "${response.status}"`);
-    }
+    const response = (await config.request({
+      uri: URLS.nextAvailable,
+      body: availreq,
+    })) as AvailabilitiesResponse;
 
     return _required_property(response, 'availability');
   },
   credits: async (): Promise<Credits> => {
-    type CreditsResponse = Credits | ErrorResponse;
-    const response = (await _get(URLS.credits)) as CreditsResponse;
-    if ('error_type' in response) {
-      throw new Error(`Server response: "${response.status}"`);
-    } else {
-      return response;
-    }
+    return config.request({ uri: URLS.credits });
   },
   lattices: async (
     deviceName?: string,
     numQubits?: number,
   ): Promise<LatticesByName> => {
-    const response = (await _get(URLS.lattices, {
-      device_name: deviceName,
-      num_qubits: numQubits,
-    })) as LatticesResponse;
-    if ('error_type' in response) {
-      if (response.error_type === 'lattices_not_found') {
+    try {
+      const response = (await config.request({
+        uri: URLS.lattices,
+        body: {
+          device_name: deviceName,
+          num_qubits: numQubits,
+        },
+      })) as LatticesResponse;
+      return _required_property(response, 'lattices');
+    } catch (err) {
+      const body = getErrorResponseBody(err);
+      if (body !== undefined && body.error_type === 'lattices_not_found') {
         return {};
       }
-
-      throw new Error(`Server response: "${response.status}"`);
-    } else {
-      return _required_property(response, 'lattices');
+      throw err;
     }
   },
   devices: async (deviceName?: string): Promise<DevicesByName> => {
-    const response = (await _get(URLS.devices, {
-      device_name: deviceName,
+    const response = (await config.request({
+      uri: URLS.devices,
+      body: {
+        device_name: deviceName,
+      },
     })) as DevicesResponse;
-    if ('error_type' in response) {
-      throw new Error(`Server response: "${response.status}"`);
-    } else {
-      return _required_property(response, 'devices');
-    }
+
+    return _required_property(response, 'devices');
   },
   qmi: async (id: number): Promise<QMI> => {
-    const response = (await _get(`${URLS.qmis}/${id}`)) as QMIResponse;
-    if ('error_type' in response) {
-      throw new Error(`Server response: "${response.status}"`);
-    }
+    const response = (await config.request({ uri: `${URLS.qmis}/${id}` })) as QMIResponse;
     return _required_property(response, 'qmi');
   },
   qmis: async (): Promise<QMI[]> => {
-    const response = (await _get(URLS.qmis)) as QMIsResponse;
-
-    if ('error_type' in response) {
-      throw new Error(`Server response: "${response.status}"`);
-    }
+    const response = (await config.request({ uri: URLS.qmis })) as QMIsResponse;
 
     return _required_property(response, 'qmis');
   },
@@ -204,46 +163,142 @@ export const GET = {
 
 export const POST = {
   reserve: async (resReq: ReservationRequest): Promise<Reservation[]> => {
-    const response = (await _post(URLS.schedule, resReq)) as ReservationsResponse;
+    const response = (await config.request({
+      uri: URLS.schedule,
+      method: 'POST',
+      body: resReq,
+    })) as ReservationsResponse;
 
-    if ('error_type' in response) {
-      throw new Error(`Server response: "${response.status}"`);
-    } else {
-      return _required_property(response, 'reservations');
-    }
+    return _required_property(response, 'reservations');
   },
   qmis: async (qmisReq: QMIRequest): Promise<any> => {
-    const response = await _post(URLS.qmis, qmisReq);
-    if (response && 'error_type' in response) {
-      throw new Error(`Server response: "${response.status}"`);
-    }
+    return config.request({
+      uri: URLS.qmis,
+      method: 'POST',
+      body: qmisReq,
+    });
   },
   qmi: async (
-    qmiId: number, action: 'start' | 'stop', body: any = undefined,
-  ): Promise<request.Response> => {
-    return _post<request.Response>(`/qmis/${qmiId}/${action}`, body, (ok, err) => (e, res, _body) => {
-      if (e) {
-        err(e);
-        return;
-      }
-      ok(res);
+    qmiId: number, action: 'start' | 'stop', _body: any = undefined,
+  ): Promise<void> => {
+    return config.request({
+      uri: `/qmis/${qmiId}/${action}`,
+      method: 'POST',
     });
   },
 };
 
 export const DELETE = {
   schedule: async (reservationIds: number[]) => {
-    const response = await _delete(URLS.schedule, {
-      reservation_ids: reservationIds,
+    return config.request({
+      uri: URLS.schedule,
+      method: 'DELETE',
+      body: {
+        reservation_ids: reservationIds,
+      },
     });
-    if (response && 'error_type' in response) {
-      throw new Error(`server says "${response.status}"`);
-    }
   },
   qmis: async (id: number): Promise<any> => {
-    const response = await _delete(`${URLS.qmis}/${id}`);
-    if (response && 'error_type' in response) {
-      throw new Error(`Server response: "${response.status}"`);
-    }
+    return config.request({
+      uri: `${URLS.qmis}/${id}`,
+      method: 'DELETE',
+    });
   },
+};
+
+/**
+ * Server error handling
+ * - We expect errors from Rest API to conform to ServerError.
+ * - We expect GQL errors to be an array of errors with extensions
+ *   of form ServerError[].
+ * - requestWithDefaults will throw on any non-2xx response.
+ * - CommandWithCatch will call handleServerErrorIfPossible to log
+ *   server errors in user friendly way.
+ */
+
+const getErrorResponseBody = (err: any): ErrorResponse | undefined => {
+  if (!err.response) {
+    return;
+  }
+  const response = err.response as request.FullResponse;
+  try {
+    let serverError: ErrorResponse;
+    if (typeof response.body === 'object') {
+      serverError = response.body;
+    } else if (response.body.error_type) {
+      serverError = JSON.parse(response.body);
+    } else {
+      throw err;
+    }
+    serverError.status_code = response.statusCode;
+    return serverError;
+  } catch (errInner) {
+    if (errInner instanceof SyntaxError) {
+      return;
+    }
+    throw err;
+  }
+};
+
+
+const handleGQLError = async (err: any) => {
+  if (err.response) {
+    const response: request.FullResponse = err.response;
+    const { body } = response;
+    if (!body) {
+      logger.error(`Server failed with ${response.statusCode}.`);
+      logger.error(response.body);
+      throw err;
+    } else if (body.errors && body.errors.length > 0) {
+      logGQLErrors(body.errors);
+      return;
+    }
+    logger.error('Unexpected server response.');
+    logger.debug(`Status:\t${response.statusCode}`);
+    logger.debug(JSON.stringify(body));
+    return;
+  }
+  throw err;
+};
+
+export const handleServerErrorIfPossible = (err: any) => {
+  const serverError = getErrorResponseBody(err);
+  if (serverError) {
+    logServerError(serverError);
+    return;
+  }
+  throw err;
+};
+
+const logGQLErrors = (errors: GQLError[]) => errors.forEach((e: GQLError) => {
+  if (!e.extensions) {
+    logger.error(e.message);
+    return;
+  }
+  logServerError(e.extensions);
+});
+
+const logServerError = (err: ErrorResponse) => {
+  if (err.status) {
+    logger.error(err.status);
+  }
+  if (err.status_code) {
+    logger.debug(`Status:\t${err.status_code}`);
+  }
+  if (err.error_type) {
+    logger.debug(`Type:\t${err.error_type}`);
+  }
+};
+
+
+const someGQLErrorIsUserUnauthorized = (errors?: GQLError[]) => {
+  if (errors) {
+    return errors.some((e) => {
+      if (e.extensions) {
+        return e.extensions.error_type === 'user_unauthorized';
+      }
+      return false;
+    });
+  }
+  return false;
 };

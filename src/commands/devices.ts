@@ -1,11 +1,12 @@
-import { Command, flags } from '@oclif/command';
+import { flags } from '@oclif/command';
 
+import CommandWithCatch from '../command-with-catch';
 import { DevicesByName, GET } from '../http';
 import { serializeDevices } from '../utils';
 
 const STATIC_EXAMPLE = `$ qcs devices`;
 
-export default class Devices extends Command {
+export default class Devices extends CommandWithCatch {
   static description = 'View available QPU devices.';
 
   static examples = [STATIC_EXAMPLE];
@@ -15,11 +16,7 @@ export default class Devices extends Command {
   };
 
   async run() {
-    try {
-      const devices = await GET.devices() as DevicesByName;
-      this.log(serializeDevices(devices));
-    } catch (e) {
-      this.log(`error: ${e}`);
-    }
+    const devices = await GET.devices() as DevicesByName;
+    this.log(serializeDevices(devices));
   }
 }

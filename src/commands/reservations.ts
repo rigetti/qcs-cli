@@ -1,5 +1,6 @@
-import { Command, flags } from '@oclif/command';
+import { flags } from '@oclif/command';
 
+import CommandWithCatch from '../command-with-catch';
 import { GET } from '../http';
 import {
   serializeReservations,
@@ -7,7 +8,7 @@ import {
 
 const staticExample = 'qcs reservations';
 
-export default class Reservations extends Command {
+export default class Reservations extends CommandWithCatch {
   static description = 'View the compute block schedule.';
 
   static examples = [staticExample];
@@ -17,11 +18,7 @@ export default class Reservations extends Command {
   };
 
   async run() {
-    try {
-      const reservations = await GET.schedule();
-      this.log(serializeReservations(reservations));
-    } catch (err) {
-      console.log('error:', err);
-    }
+    const reservations = await GET.schedule();
+    this.log(serializeReservations(reservations));
   }
 }

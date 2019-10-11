@@ -37,15 +37,18 @@ Reservation(s) confirmed, run 'qcs reservations' to see the latest schedule.
 `;
 
 describe('test the qcs reserve command', () => {
+  let confirmReserveStub: sinon.SinonStub;
   beforeEach(() => {
     mockGetCredits();
     mockGetAvailability();
     mockGetAvailabilityReturnTwo();
     mockPostReservations(reservationRequest);
+    confirmReserveStub = sinon.stub(utils, 'confirmReservationPrompt');
+    confirmReserveStub.returns(new Promise((ok) => ok(0)));
   });
-
-  const confirmReserveStub = sinon.stub(utils, 'confirmReservationPrompt');
-  confirmReserveStub.returns(new Promise((ok) => ok(0)));
+  afterEach(() => {
+    sinon.restore();
+  });
 
   test
     .stdout()

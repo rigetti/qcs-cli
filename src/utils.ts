@@ -185,6 +185,8 @@ export interface Device {
   device_name: string;
   num_qubits: number;
   category: string;
+  google_calendar_id: string;
+  qpu_endpoint: string;
 }
 
 export interface Lattice {
@@ -248,7 +250,7 @@ export interface QMI {
 }
 
 export interface QMIRequest {
-  public_key: string;
+  public_key?: string;
 }
 
 export const QMITitles = `ID${' '.repeat(10)}IP${' '.repeat(14)}STATUS`;
