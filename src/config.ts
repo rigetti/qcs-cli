@@ -113,6 +113,19 @@ export interface RawQCSConfig {
   [key: string]: string | undefined;
 }
 
+/**
+ * QCSConfig class has the following responsibilities:
+ * 1. Read and validate ~/.qcs_config file.
+ * 2. Read auth credentials.
+ * 3. Set base URL and headers according to config
+ *    file and credentials.
+ * 4. In the case of a 401 or 403 response, refresh
+ *    the auth credentials and retry.
+ * Note, axios.simple is set to true, so any non-2xx
+ * response will result in throwing an error. Commands
+ * can ignore these errors and allow CommandWithCatch
+ * to log server errors.
+ */
 export class QCSConfig {
   protected readonly rawConfig: RawQCSConfig;
   protected readonly rawConfigSchema: any = QCS_CONFIG_SCHEMA;
