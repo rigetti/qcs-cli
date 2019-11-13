@@ -1,7 +1,7 @@
 import { flags } from '@oclif/command';
 
 import CommandWithCatch from '../command-with-catch';
-import { GET } from '../http';
+import { GET, POST } from '../http';
 import logger from '../logger';
 import {
   bookReservations,
@@ -10,10 +10,11 @@ import {
   makeAvailabilityRequest,
   makeReservationRequest,
   minimumAvailabilityStartTime,
-  red,
-  reset,
   serializeAvailabilities,
+  pick,
+  serializeReservations,
 } from '../utils';
+import { baseOptions, SerializeFormat } from '../baseOptions';
 
 const STATIC_EXAMPLE = `Reserve time.
 
@@ -54,6 +55,12 @@ export default class Reserve extends CommandWithCatch {
       required: false,
       default: '',
     }),
+    list: flags.boolean({
+      description: 'Just log availabilities without choosing a time.',
+      required: false,
+      default: false,
+    }),
+    ...pick(baseOptions, 'format', 'confirm'),
   };
 
   async run() {
@@ -66,7 +73,23 @@ export default class Reserve extends CommandWithCatch {
       return;
     }
 
-    const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
+    if (flags.list) {
+      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
+      const availabilities = await GET.availability(availreq);
+      this.log(serializeAvailabilities(availabilities, flags.format as SerializeFormat));
+      return;
+    }
+    if (flags.confirm) {
+      if (!flags.lattice) {
+        this.logErrorAndExit('Must provide lattice name when confirming reservation.');
+        return;
+      }
+      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
+      const resreq = makeReservationRequest(availreq, flags.lattice, flags.notes || '');
+      const reservations = await POST.reserve(resreq);
+      this.log(serializeReservations(reservations, { format: flags.format as SerializeFormat }));
+      return;
+    }
 
     let answer;
 
@@ -74,8 +97,9 @@ export default class Reserve extends CommandWithCatch {
       const credits = await GET.credits();
       logCredits(credits);
 
+      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
       const availabilities = await GET.availability(availreq);
-      this.log(serializeAvailabilities(availabilities));
+      this.log(serializeAvailabilities(availabilities, flags.format as SerializeFormat));
 
       if (!availabilities || availabilities.length < 1) return;
 
@@ -101,16 +125,13 @@ export default class Reserve extends CommandWithCatch {
       }
 
       // Assume answer is a number specifying the index of the availability to book.
-      let availability;
-
-      availreq.start_time = availabilities[answer as number].start_time;
-      availability = availabilities[answer as number];
+      const availability = availabilities[answer as number];
+      availreq.start_time = availability.start_time;
 
       if (credits.available_credit - availability.expected_price < 0) {
-        const line = `${red}
-Alert! This reservation's price is more than your current available balance.
-Booking it result in a usage bill. If you believe this is an error, please contact support@rigetti.com.${ reset }`;
-        logger.error(line);
+        const error = `Alert! This reservation's price is more than your current available balance.
+Booking it result in a usage bill. If you believe this is an error, please contact support@rigetti.com.`;
+        logger.error(error);
         return;
       }
       const resreq = makeReservationRequest(availreq, availability.lattice_name, flags.notes || '');

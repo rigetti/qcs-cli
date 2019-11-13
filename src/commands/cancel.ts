@@ -1,13 +1,14 @@
 import { flags } from '@oclif/command';
 
+import { baseOptions } from '../baseOptions';
+import CommandWithCatch from '../command-with-catch';
+import { DELETE, GET } from '../http';
 import {
   confirmCancelReservationPrompt,
   parseValueOrValues,
   serializeReservations,
+  pick,
 } from '../utils';
-
-import CommandWithCatch from '../command-with-catch';
-import { DELETE, GET } from '../http';
 
 const STATIC_EXAMPLE = `Cancel a reservation, or a list of reservations.
 
@@ -31,24 +32,28 @@ export default class Cancel extends CommandWithCatch {
       description: 'ID of reservation to cancel, or a list of IDs.',
       required: true,
     }),
+    ...pick(baseOptions, 'confirm'),
   };
 
   async run() {
     const { flags } = this.parse(Cancel);
     const ids = parseValueOrValues(flags.id);
 
-    const resToCancel = (await GET.schedule({ ids })).filter(
-      r => r.status === 'ACTIVE',
-    );
-    if (resToCancel.length === 0) {
-      this.logErrorAndExit('reservation(s) found, but none that are active');
-    }
+    if (!flags.confirm) {
+      const resToCancel = (await GET.schedule({ ids })).filter(
+        r => r.status === 'ACTIVE',
+      );
+      if (resToCancel.length === 0) {
+        this.logErrorAndExit('reservation(s) found, but none that are active');
+      }
 
-    this.log(serializeReservations(resToCancel));
+      this.log(serializeReservations(resToCancel));
 
-    const answer = await confirmCancelReservationPrompt();
-    if (!answer) {
-      this.logErrorAndExit('aborting cancellation');
+      const answer = await confirmCancelReservationPrompt();
+      if (!answer) {
+        this.log('aborting cancellation');
+        return;
+      }
     }
 
     await DELETE.schedule(ids);

@@ -29,4 +29,12 @@ describe('test the qcs cancel command', () => {
     .it('should call the cancel command and verify output', ctx => {
       expect(ctx.stdout).to.equal(output);
     });
+
+  test
+    .stdout()
+    .command(['cancel', '-i', '0', '--confirm'])
+    .it('should call the cancel command and verify output', ctx => {
+      expect(confirmReserveStub.called).to.equal(false);
+      expect(ctx.stdout).to.contain('Reservation(s) cancelled.');
+    });
 });

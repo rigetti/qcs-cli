@@ -1,8 +1,9 @@
 import { flags } from '@oclif/command';
 
+import { baseOptions, SerializeFormat } from '../baseOptions';
 import CommandWithCatch from '../command-with-catch';
 import { GET, LatticesByName } from '../http';
-import { parsePositiveInteger, serializeLattices } from '../utils';
+import { parsePositiveInteger, pick, serializeLattices } from '../utils';
 
 const STATIC_EXAMPLE = `$ qcs lattices`;
 
@@ -23,6 +24,7 @@ export default class Lattices extends CommandWithCatch {
       description: 'Show only lattices with n qubits.',
       required: false,
     }),
+    ...pick(baseOptions, 'format'),
   };
 
   async run() {
@@ -35,6 +37,6 @@ export default class Lattices extends CommandWithCatch {
     }
 
     const lattices = await GET.lattices(device, numQubits) as LatticesByName;
-    this.log(serializeLattices(lattices));
+    this.log(serializeLattices(lattices, flags.format as SerializeFormat));
   }
 }

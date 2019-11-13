@@ -22,4 +22,13 @@ describe('test the qcs lattices command', () => {
     .it('should call the lattices command with no arguments and verify output', ctx => {
       expect(ctx.stdout).to.equal(output);
     });
+
+  test
+    .stdout()
+    .command(['lattices', '--format=json'])
+    .it('should call the lattices command with no arguments and output in json', ctx => {
+      const lattices = JSON.parse(ctx.stdout);
+      expect(lattices['test-lattice'].device).to.equal('some-device');
+      expect(lattices['test-lattice'].lattice_name).to.equal('test-lattice');
+    });
 });

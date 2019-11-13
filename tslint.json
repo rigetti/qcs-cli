@@ -15,7 +15,7 @@
     "no-bitwise": false,
     "no-null-keyword": true,
     "no-unused": [true, {"ignore-pattern": "^_"}],
-    "ordered-imports": true,
+    "ordered-imports": false,
     "no-trailing-whitespace": true,
     "semicolon": true,
     "trailing-comma": [true, { "multiline": "always", "singleline": "never" }],
