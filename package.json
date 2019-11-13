@@ -91,9 +91,11 @@
     "plugins": [
       "@oclif/plugin-help"
     ],
-    "hooks": [
-      "./src/setConfig"
-    ]
+    "hooks": {
+      "init": [
+        "./src/hooks/setConfig"
+      ]
+    }
   },
   "repository": "rigetti/qcs-cli",
   "scripts": {
