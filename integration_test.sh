@@ -2,7 +2,6 @@
 
 set -e
 
-ORIGINAL_PROMPT_COMMAND=$PROMPT_COMMAND
 unset PROMPT_COMMAND
 
 ./bin/run devices
@@ -17,11 +16,11 @@ unset PROMPT_COMMAND
 echo "y" | ./bin/run reserve -l $LATTICE_NAME
 
 RESERVATIONS=$(./bin/run reservations)
-RESERVATION_ID_REGEXP='PRICE[[:space:]]*([0-9]+)'
-if [[ $RESERVATIONS =~ $RESERVATION_ID_REGEXP  ]]
+# This grabs the first reservation id in the table
+# (it is the first sequence of digits).
+if [[ $RESERVATIONS =~ [[:digit:]]+  ]]
 then
-    RESERVATION_ID="${BASH_REMATCH[1]}"
-    echo "y" | ./bin/run cancel -i ${RESERVATION_ID}
+    echo "y" | ./bin/run cancel -i ${BASH_REMATCH}
 else
     echo $RESERVATIONS
     echo "could not parse reservations"

@@ -178,7 +178,7 @@ export class QCSConfig {
   // the available user or QMI access token.
   public async request<T>(opts: request.Options): Promise<T>{
     try {
-      return this._requestWithDefaults(opts);
+      return await this._requestWithDefaults(opts);
     } catch (err) {
       if (err.response && [401, 403].indexOf(err.response.statusCode) >= 0) {
         await this.refreshAuthToken();
