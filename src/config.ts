@@ -7,8 +7,8 @@ import * as request from 'request-promise-native';
 import logger from './logger';
 
 export interface AccessToken {
-  access_token?: string;
-  refresh_token?: string;
+  access_token: string;
+  refresh_token: string;
 }
 
 export const forestEnvironment =  process.env.FOREST_ENVIRONMENT || process.env.FE;
@@ -152,7 +152,7 @@ export class QCSConfig {
     if (this.userAccessToken) {
       headers.Authorization = `Bearer ${this.userAccessToken.access_token}`;
     } else if (this.qmiAccessToken) {
-      headers.Authorization = `Bearer ${this.qmiAccessToken.access_token}`;
+      headers['X-QMI-AUTH-TOKEN'] = this.qmiAccessToken.access_token;
     }
     if (this.rawConfig.user_id) {
       // WARN: This will be deprecated.
