@@ -295,9 +295,9 @@ export function getKey(keypath: string): string {
   return fs.readFileSync(pth, 'utf-8');
 }
 
-export async function confirmDeleteQMI(qmi: QMI, format: SerializeFormat = 'tabular'): Promise<boolean> {
+export async function confirmDeleteQMI(qmi: QMI): Promise<boolean> {
   console.log("Found 1 QMI for deletion:");
-  console.log(serializeQMIs([qmi], format));
+  console.log(serializeQMIs([qmi]));
   const typedIP = await cli.prompt(
     `\n${yellow}Alert! You have requested to delete your QMI. Are you absolutely sure?
 Deleting your QMI will also delete your associated SSH keys. This action cannot be undone.

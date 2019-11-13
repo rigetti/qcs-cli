@@ -2,7 +2,6 @@ import { flags } from '@oclif/command';
 
 import CommandWithCatch from '../command-with-catch';
 import { GET, POST } from '../http';
-import logger from '../logger';
 import {
   bookReservations,
   confirmReservationPrompt,
@@ -131,7 +130,7 @@ export default class Reserve extends CommandWithCatch {
       if (credits.available_credit - availability.expected_price < 0) {
         const error = `Alert! This reservation's price is more than your current available balance.
 Booking it result in a usage bill. If you believe this is an error, please contact support@rigetti.com.`;
-        logger.error(error);
+        this.logErrorAndExit(error);
         return;
       }
       const resreq = makeReservationRequest(availreq, availability.lattice_name, flags.notes || '');

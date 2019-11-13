@@ -39,14 +39,14 @@ export default class Cancel extends CommandWithCatch {
     const { flags } = this.parse(Cancel);
     const ids = parseValueOrValues(flags.id);
 
-    if (!flags.confirm) {
-      const resToCancel = (await GET.schedule({ ids })).filter(
-        r => r.status === 'ACTIVE',
-      );
-      if (resToCancel.length === 0) {
-        this.logErrorAndExit('reservation(s) found, but none that are active');
-      }
+    const resToCancel = (await GET.schedule({ ids })).filter(
+      r => r.status === 'ACTIVE',
+    );
+    if (resToCancel.length === 0) {
+      this.logErrorAndExit('reservation(s) found, but none that are active');
+    }
 
+    if (!flags.confirm) {
       this.log(serializeReservations(resToCancel));
 
       const answer = await confirmCancelReservationPrompt();
