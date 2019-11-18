@@ -439,7 +439,7 @@ export function serializeReservation(reservation: Reservation, format: Serialize
   return line;
 }
 
-export function serializeAvailabilities(availabilities: Availability[], format: SerializeFormat) {
+export function serializeAvailabilities(availabilities: Availability[], format: SerializeFormat = 'tabular') {
   if (format.indexOf('json') === 0) {
     return jsonStringify(availabilities, format);
   }
