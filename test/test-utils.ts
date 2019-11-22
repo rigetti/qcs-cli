@@ -1,14 +1,16 @@
 import { expect } from 'chai';
 import * as nock from 'nock';
 
-import * as config from '../src/config';
-import { AvailabilitiesResponse,
+import { QCSConfig } from '../src/config';
+import {
+         AvailabilitiesResponse,
          DevicesByName,
          DevicesResponse,
          LatticesByName,
          LatticesResponse,
          QMIResponse,
          QMIsResponse,
+         setConfig as setHTTPConfig,
          URLS } from '../src/http';
 import {
   Availability,
@@ -17,10 +19,16 @@ import {
   Device,
   dtFmt,
   Lattice,
-  QMIRequest,
   Reservation,
   ReservationRequest,
 } from '../src/utils';
+
+export let config: QCSConfig;
+export const setConfig = (c: QCSConfig) => {
+  config = c;
+  setHTTPConfig(c);
+};
+setConfig(new QCSConfig());
 
 export { nock };
 
@@ -37,7 +45,7 @@ export const creditsResponse = {
 } as Credits;
 
 export function mockGetCredits() {
-  return nock(config.publicForestServer)
+  return nock(config.url)
     .get(URLS.credits)
     .reply(200, creditsResponse);
 }
@@ -61,7 +69,7 @@ export const devicesResponse = {
 } as DevicesResponse;
 
 export function mockGetDevices() {
-  return nock(config.publicForestServer)
+  return nock(config.url)
     .get(URLS.devices)
     .reply(200, devicesResponse);
 }
@@ -87,7 +95,7 @@ export const latticesResponse = {
 } as LatticesResponse;
 
 export function mockGetLattices() {
-  return nock(config.publicForestServer)
+  return nock(config.url)
     .get(URLS.lattices)
     .reply(200, latticesResponse);
 }
@@ -102,28 +110,19 @@ const qmiResponse = { qmi } as QMIResponse;
 const qmisResponse = { qmis: [qmi] } as QMIsResponse;
 
 export function mockGetQMIs() {
-  return nock(config.publicForestServer)
+  return nock(config.url)
     .get(URLS.qmis)
     .reply(200, qmisResponse);
 }
 
 export function mockGetQMI(id: number) {
-  nock(config.publicForestServer)
+  nock(config.url)
     .get(`${URLS.qmis}/${id}`)
     .reply(200, qmiResponse);
 }
 
-export function mockPostQMI() {
-  return nock(config.publicForestServer)
-    .post(URLS.qmis, (data: QMIRequest) => {
-      expect(data).to.eql({ public_key: key });
-      return true;
-    })
-    .reply(201);
-}
-
 export function mockDeleteQMI(id: number) {
-  return nock(config.publicForestServer)
+  return nock(config.url)
     .delete(`${URLS.qmis}/${id}`)
     .reply(202);
 }
@@ -184,31 +183,31 @@ export const twoAvailabilitiesResponse = {
 } as AvailabilitiesResponse;
 
 export function mockGetAvailability() {
-  return nock(config.publicForestServer)
+  return nock(config.url)
     .get(URLS.nextAvailable)
     .reply(200, availabilitiesResponse);
 }
 
 export function mockGetAvailabilityReturnTwo() {
-  return nock(config.publicForestServer)
+  return nock(config.url)
     .get(URLS.nextAvailable)
     .reply(200, twoAvailabilitiesResponse);
 }
 
 export function mockGetReservations() {
-    return nock(config.publicForestServer)
+    return nock(config.url)
       .get(URLS.schedule)
       .reply(200, reservationsResponse);
 }
 
 export function mockDeleteReservations() {
-    return nock(config.publicForestServer)
+    return nock(config.url)
       .delete(URLS.schedule)
       .reply(202);
 }
 
 export function mockPostReservations(expectedData: ReservationRequest) {
-  return nock(config.publicForestServer)
+  return nock(config.url)
     .post(URLS.schedule, (data: ReservationRequest) => {
       expect(data).to.eql(expectedData);
       return true;

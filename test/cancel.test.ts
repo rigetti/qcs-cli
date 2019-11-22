@@ -12,18 +12,29 @@ Reservation(s) cancelled. Type 'qcs reservations' to see the latest schedule.
 `;
 
 describe('test the qcs cancel command', () => {
+  let confirmReserveStub: sinon.SinonStub;
   beforeEach(() => {
+    confirmReserveStub = sinon.stub(utils, 'confirmCancelReservationPrompt');
+    confirmReserveStub.returns(new Promise((ok) => ok(true)));
     mockGetReservations();
     mockDeleteReservations();
   });
-
-  const confirmReserveStub = sinon.stub(utils, 'confirmCancelReservationPrompt');
-  confirmReserveStub.returns(new Promise((ok) => ok(true)));
+  afterEach(() => {
+    sinon.restore();
+  });
 
   test
     .stdout()
     .command(['cancel', '-i', '0'])
     .it('should call the cancel command and verify output', ctx => {
       expect(ctx.stdout).to.equal(output);
+    });
+
+  test
+    .stdout()
+    .command(['cancel', '-i', '0', '--confirm'])
+    .it('should call the cancel command and verify output', ctx => {
+      expect(confirmReserveStub.called).to.equal(false);
+      expect(ctx.stdout).to.contain('Reservation(s) cancelled.');
     });
 });

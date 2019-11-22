@@ -4,14 +4,16 @@ import * as sinon from 'sinon';
 import * as utils from '../src/utils';
 import { endTimeDate,
          latticeName,
-         mockGetAvailability,
-         mockGetAvailabilityReturnTwo,
-         mockGetCredits,
-         mockPostReservations,
          reservationNotes,
-         reservationRequest,
          startTimeDate,
+         config,
+         reservationsResponse,
+         availabilitiesResponse,
+         twoAvailabilitiesResponse,
+         creditsResponse,
 } from './test-utils';
+import nock = require('nock');
+import { URLS } from '../src/http';
 
 const singleOutput = `Available credits: $8.00
 
@@ -37,27 +39,66 @@ Reservation(s) confirmed, run 'qcs reservations' to see the latest schedule.
 `;
 
 describe('test the qcs reserve command', () => {
+  let confirmReserveStub: sinon.SinonStub;
   beforeEach(() => {
-    mockGetCredits();
-    mockGetAvailability();
-    mockGetAvailabilityReturnTwo();
-    mockPostReservations(reservationRequest);
+    nock(config.url)
+      .get(URLS.credits)
+      .reply(200, creditsResponse);
+
+    nock(config.url)
+      .post(URLS.schedule)
+      .reply(200, reservationsResponse);
+    confirmReserveStub = sinon.stub(utils, 'confirmReservationPrompt');
+    confirmReserveStub.returns(new Promise((ok) => ok(0)));
+  });
+  afterEach(() => {
+    sinon.restore();
+    nock.cleanAll();
   });
 
-  const confirmReserveStub = sinon.stub(utils, 'confirmReservationPrompt');
-  confirmReserveStub.returns(new Promise((ok) => ok(0)));
-
-  test
-    .stdout()
-    .command(['reserve', '-l', latticeName, '-t', '60m', '-n', reservationNotes])
-    .it('should call the reserve command and verify output for a single availability', ctx => {
-      expect(ctx.stdout).to.equal(singleOutput);
+  describe('single output', () => {
+    beforeEach(() => {
+      nock(config.url)
+        .get(URLS.nextAvailable)
+        .reply(200, availabilitiesResponse);
     });
 
-  test
-    .stdout()
-    .command(['reserve', '-l', latticeName, '-t', '60m', '-n', reservationNotes])
-    .it('should call the reserve command and verify output for a multiple returned availabilities', ctx => {
-      expect(ctx.stdout).to.equal(pluralOutput);
+    test
+      .stdout()
+      .command(['reserve', '-l', latticeName, '-t', '60m', '-n', reservationNotes])
+      .it('should call the reserve command and verify output for a single availability', ctx => {
+        expect(ctx.stdout).to.equal(singleOutput);
+      });
+
+    test
+      .stdout()
+      .command(['reserve', '--list', '-l', latticeName, '-t', '60m', '-n', reservationNotes])
+      .it('should only list available times', ctx => {
+        expect(ctx.stdout).to.contain('The next available compute block');
+        expect(confirmReserveStub.called).to.be.false;
+      });
+
+    test
+      .stdout()
+      .command(['reserve', '--confirm', '-l', latticeName, '-t', '60m', '-n', reservationNotes])
+      .it('should create reservation directly', ctx => {
+        expect(ctx.stdout).not.to.contain('The next available compute block');
+        expect(confirmReserveStub.called).to.be.false;
+      });
+  });
+
+  describe('multiple output', () => {
+    beforeEach(() => {
+      nock(config.url)
+        .get(URLS.nextAvailable)
+        .reply(200, twoAvailabilitiesResponse);
     });
+
+    test
+      .stdout()
+      .command(['reserve', '-l', latticeName, '-t', '60m', '-n', reservationNotes])
+      .it('should call the reserve command and verify output for a multiple returned availabilities', ctx => {
+        expect(ctx.stdout).to.equal(pluralOutput);
+      });
+  });
 });

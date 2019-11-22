@@ -1,6 +1,7 @@
-import { Command, flags } from '@oclif/command';
+import { flags } from '@oclif/command';
 
-import { GET } from '../http';
+import CommandWithCatch from '../command-with-catch';
+import { GET, POST } from '../http';
 import {
   bookReservations,
   confirmReservationPrompt,
@@ -8,10 +9,11 @@ import {
   makeAvailabilityRequest,
   makeReservationRequest,
   minimumAvailabilityStartTime,
-  red,
-  reset,
   serializeAvailabilities,
+  pick,
+  serializeReservations,
 } from '../utils';
+import { baseOptions, SerializeFormat } from '../baseOptions';
 
 const STATIC_EXAMPLE = `Reserve time.
 
@@ -19,7 +21,7 @@ EXAMPLES:
 $ qcs reserve --lattice 6Q-Ring --start "12/8/18 2pm PST" --duration 30m
 `;
 
-export default class Reserve extends Command {
+export default class Reserve extends CommandWithCatch {
   static description = 'Book reservations in the compute schedule.';
 
   static examples = [STATIC_EXAMPLE];
@@ -52,6 +54,12 @@ export default class Reserve extends Command {
       required: false,
       default: '',
     }),
+    list: flags.boolean({
+      description: 'Just log availabilities without choosing a time.',
+      required: false,
+      default: false,
+    }),
+    ...pick(baseOptions, 'format', 'confirm'),
   };
 
   async run() {
@@ -64,59 +72,69 @@ export default class Reserve extends Command {
       return;
     }
 
-    const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
-
-    try {
-      let answer;
-
-      do {
-        const credits = await GET.credits();
-        logCredits(credits);
-
-        const availabilities = await GET.availability(availreq);
-        this.log(serializeAvailabilities(availabilities));
-
-        if (!availabilities || availabilities.length < 1) return;
-
-        answer = await confirmReservationPrompt(availabilities.length);
-
-        if (answer === 'n') {
-          // Check for another start time based on the earliest time
-          // returned plus the requested duration. This only advances
-          // the time on the earliest available device. For example,
-          // if device A is available at 10:00 and device B is
-          // available at 12:00, this 'n' loop will only show a new
-          // time for device A after 10:00, not for device B after
-          // 12:00. There isn't a straightforward way to advance them
-          // both.
-          const earliestStartTime = minimumAvailabilityStartTime(availabilities);
-          availreq.start_time = new Date(
-            new Date(earliestStartTime).getTime() + availreq.duration * 1e3,
-          ).toISOString();
-          continue;
-        } else if (answer === 'q') {
-          this.log('exiting.\n');
-          return;
-        }
-
-        // Assume answer is a number specifying the index of the availability to book.
-        let availability;
-
-        availreq.start_time = availabilities[answer as number].start_time;
-        availability = availabilities[answer as number];
-
-        if (credits.available_credit - availability.expected_price < 0) {
-          const line = `${red}
-Alert! This reservation's price is more than your current available balance.
-Booking it result in a usage bill.If you believe this is in error, please contact support@rigetti.com.${ reset }`;
-          console.log(line);
-          return;
-        }
-        const resreq = makeReservationRequest(availreq, availability.lattice_name, flags.notes || '');
-        this.log(await bookReservations(resreq));
-      } while (answer === 'n');
-    } catch (e) {
-      console.error('error:', e);
+    if (flags.list) {
+      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
+      const availabilities = await GET.availability(availreq);
+      this.log(serializeAvailabilities(availabilities, flags.format as SerializeFormat));
+      return;
     }
+    if (flags.confirm) {
+      if (!flags.lattice) {
+        this.logErrorAndExit('Must provide lattice name when confirming reservation.');
+        return;
+      }
+      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
+      const resreq = makeReservationRequest(availreq, flags.lattice, flags.notes || '');
+      const reservations = await POST.reserve(resreq);
+      this.log(serializeReservations(reservations, { format: flags.format as SerializeFormat }));
+      return;
+    }
+
+    let answer;
+
+    do {
+      const credits = await GET.credits();
+      logCredits(credits);
+
+      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
+      const availabilities = await GET.availability(availreq);
+      this.log(serializeAvailabilities(availabilities, flags.format as SerializeFormat));
+
+      if (!availabilities || availabilities.length < 1) return;
+
+      answer = await confirmReservationPrompt(availabilities.length);
+
+      if (answer === 'n') {
+        // Check for another start time based on the earliest time
+        // returned plus the requested duration. This only advances
+        // the time on the earliest available device. For example,
+        // if device A is available at 10:00 and device B is
+        // available at 12:00, this 'n' loop will only show a new
+        // time for device A after 10:00, not for device B after
+        // 12:00. There isn't a straightforward way to advance them
+        // both.
+        const earliestStartTime = minimumAvailabilityStartTime(availabilities);
+        availreq.start_time = new Date(
+          new Date(earliestStartTime).getTime() + availreq.duration * 1e3,
+        ).toISOString();
+        continue;
+      } else if (answer === 'q') {
+        this.log('exiting.\n');
+        return;
+      }
+
+      // Assume answer is a number specifying the index of the availability to book.
+      const availability = availabilities[answer as number];
+      availreq.start_time = availability.start_time;
+
+      if (credits.available_credit - availability.expected_price < 0) {
+        const error = `Alert! This reservation's price is more than your current available balance.
+Booking it result in a usage bill. If you believe this is an error, please contact support@rigetti.com.`;
+        this.logErrorAndExit(error);
+        return;
+      }
+      const resreq = makeReservationRequest(availreq, availability.lattice_name, flags.notes || '');
+      this.log(await bookReservations(resreq));
+    } while (answer === 'n');
   }
 }

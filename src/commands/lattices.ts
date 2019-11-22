@@ -1,11 +1,13 @@
-import { Command, flags } from '@oclif/command';
+import { flags } from '@oclif/command';
 
+import { baseOptions, SerializeFormat } from '../baseOptions';
+import CommandWithCatch from '../command-with-catch';
 import { GET, LatticesByName } from '../http';
-import { parsePositiveInteger, serializeLattices } from '../utils';
+import { parsePositiveInteger, pick, serializeLattices } from '../utils';
 
 const STATIC_EXAMPLE = `$ qcs lattices`;
 
-export default class Lattices extends Command {
+export default class Lattices extends CommandWithCatch {
   static description = 'View available lattices.';
 
   static examples = [STATIC_EXAMPLE];
@@ -22,6 +24,7 @@ export default class Lattices extends Command {
       description: 'Show only lattices with n qubits.',
       required: false,
     }),
+    ...pick(baseOptions, 'format'),
   };
 
   async run() {
@@ -30,14 +33,10 @@ export default class Lattices extends Command {
     const numQubits = flags.num_qubits ? parsePositiveInteger(flags.num_qubits) : undefined ;
 
     if (flags.num_qubits && !numQubits) {
-      throw new Error('Please supply a positive integer for number of qubits.');
+      this.logErrorAndExit('Please supply a positive integer for number of qubits.');
     }
 
-    try {
-      const lattices = await GET.lattices(device, numQubits) as LatticesByName;
-      this.log(serializeLattices(lattices));
-    } catch (e) {
-      this.log(`error: ${e}`);
-    }
+    const lattices = await GET.lattices(device, numQubits) as LatticesByName;
+    this.log(serializeLattices(lattices, flags.format as SerializeFormat));
   }
 }

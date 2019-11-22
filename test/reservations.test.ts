@@ -19,4 +19,13 @@ describe('test the qcs reservations command', () => {
     .it('should call the reservations command with no arguments and verify output', ctx => {
       expect(ctx.stdout).to.equal(output);
     });
+
+  test
+    .stdout()
+    .command(['reservations', '--format=json-pretty'])
+    .it('should call the reservations command with no arguments and verify output', ctx => {
+      const reservations = JSON.parse(ctx.stdout);
+      expect(reservations[0].id).to.equal(0);
+      expect(reservations[0].user_email).to.equal('isidor.rabi@bloch.org');
+    });
 });

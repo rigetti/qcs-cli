@@ -4,6 +4,7 @@ import * as moment from 'moment-timezone';
 import * as os from 'os';
 import * as path from 'path';
 
+import { SerializeFormat } from './baseOptions';
 import { POST } from './http';
 
 const chrono = require('chrono-node');
@@ -185,6 +186,8 @@ export interface Device {
   device_name: string;
   num_qubits: number;
   category: string;
+  google_calendar_id: string;
+  qpu_endpoint: string;
 }
 
 export interface Lattice {
@@ -195,7 +198,10 @@ export interface Lattice {
   price_per_minute: number;
 }
 
-export function serializeDevices(devices: { [name: string]: Device }) {
+export function serializeDevices(devices: { [name: string]: Device }, format: SerializeFormat = 'tabular') {
+  if (format.indexOf('json') === 0) {
+    return jsonStringify(devices, format);
+  }
   if (Object.keys(devices).length < 1) return '\nNo devices found.\n';
 
   let str = '';
@@ -212,7 +218,10 @@ export function serializeDevice(deviceName: string) {
   return str;
 }
 
-export function serializeLattice(latticeName: string, lattice: Lattice) {
+export function serializeLattice(latticeName: string, lattice: Lattice, format: SerializeFormat = 'tabular') {
+  if (format.indexOf('json') === 0) {
+    return jsonStringify(lattice, format);
+  }
   let str = '';
   const qubits = Object.keys(lattice.qubits);
   const pricePerMin = currencyFormatter.format(lattice.price_per_minute / 100.);
@@ -225,7 +234,10 @@ export function serializeLattice(latticeName: string, lattice: Lattice) {
   return str;
 }
 
-export function serializeLattices(lattices: { [name: string]: Lattice }) {
+export function serializeLattices(lattices: { [name: string]: Lattice }, format: SerializeFormat = 'tabular') {
+  if (format.indexOf('json') === 0) {
+    return jsonStringify(lattices, format);
+  }
   if (Object.keys(lattices).length === 0) return '\nNo lattices found.\n';
 
   let str = '';
@@ -248,20 +260,27 @@ export interface QMI {
 }
 
 export interface QMIRequest {
-  public_key: string;
+  public_key?: string;
 }
 
 export const QMITitles = `ID${' '.repeat(10)}IP${' '.repeat(14)}STATUS`;
 
-export function serializeQMI(qmi: QMI) {
+export function serializeQMI(qmi: QMI, format: SerializeFormat = 'tabular') {
+  if (format.indexOf('json') === 0) {
+    return jsonStringify(qmi, format);
+  }
   const ip = qmi.openstack_status && qmi.openstack_status.ip;
   return `${qmi.id.toString().padEnd(12)}${(ip || '').padEnd(16)}${qmi.status}`;
 }
 
-export function serializeQMIs(qmis: QMI[] | undefined) {
+export function serializeQMIs(qmis: QMI[] | undefined, format: SerializeFormat = 'tabular') {
+  if (format.indexOf('json') === 0) {
+    return jsonStringify(qmis, format);
+  }
   if (!qmis || qmis.length < 1) {
     return 'No QMIs found.';
   }
+
   let serialized = '';
   serialized += `${QMITitles}\n`;
   serialized += qmis.map((qmi: QMI) => serializeQMI(qmi));
@@ -338,8 +357,24 @@ export const availabilityTitles =
 const currentHeader = 'CURRENTLY RUNNING COMPUTE BLOCKS';
 const upcomingHeader = 'UPCOMING COMPUTE BLOCKS';
 
+
+interface SerializeReservationOptions {
+  titles?: string;
+  format?: SerializeFormat;
+  // tslint:disable-next-line
+  serializeReservationHandler?: (arg0: Reservation) => string;
+}
+
 export function serializeReservations(
-  reservations: Reservation[], serializeReservationHandler?: (arg0: Reservation) => string, titles?: string) {
+  reservations: Reservation[],
+  {
+    format = 'tabular',
+    titles, serializeReservationHandler,
+  }: SerializeReservationOptions = {},
+) {
+  if (format.indexOf('json') === 0) {
+    return jsonStringify(reservations, format);
+  }
   if (reservations.length === 0) {
     return 'No reservations found.';
   }
@@ -383,7 +418,10 @@ export function serializeReservations(
   return line;
 }
 
-export function serializeReservation(reservation: Reservation) {
+export function serializeReservation(reservation: Reservation, format: SerializeFormat = 'tabular') {
+  if (format.indexOf('json') === 0) {
+    return jsonStringify(reservation, format);
+  }
   let line = '';
   const startTime = new Date(reservation.start_time);
   const endTime = new Date(reservation.end_time);
@@ -401,23 +439,26 @@ export function serializeReservation(reservation: Reservation) {
   return line;
 }
 
-export function serializeAvailabilities(availabilities: Availability[]) {
-    // FIXME: Promises should have a reject path
-    if (!availabilities || availabilities.length < 1) {
-      return '\nThere is no upcoming compute availability. Please try again later.';
-    }
-
-    let line = '';
-    line += availabilities.length > 1 ?
-      `\nThe next available compute blocks are:\n\n` : `\nThe next available compute block is:\n\n`;
-    // Only add the ID column if more than one available slot is present
-    line += (availabilities.length > 1) ? 'ID'.padEnd(6) : '';
-    line += `${availabilityTitles}\n`;
-    availabilities.map((availability, idx) => {
-      line += serializeAvailability(availability, (availabilities.length > 1) ? idx : undefined);
-    });
-    return line;
+export function serializeAvailabilities(availabilities: Availability[], format: SerializeFormat = 'tabular') {
+  if (format.indexOf('json') === 0) {
+    return jsonStringify(availabilities, format);
   }
+  // FIXME: Promises should have a reject path
+  if (!availabilities || availabilities.length < 1) {
+    return '\nThere is no upcoming compute availability. Please try again later.';
+  }
+
+  let line = '';
+  line += availabilities.length > 1 ?
+    `\nThe next available compute blocks are:\n\n` : `\nThe next available compute block is:\n\n`;
+  // Only add the ID column if more than one available slot is present
+  line += (availabilities.length > 1) ? 'ID'.padEnd(6) : '';
+  line += `${availabilityTitles}\n`;
+  availabilities.map((availability, idx) => {
+    line += serializeAvailability(availability, (availabilities.length > 1) ? idx : undefined);
+  });
+  return line;
+}
 
 export function serializeAvailability(availability: Availability, idx?: number) {
   let line = '';
@@ -529,3 +570,21 @@ export async function confirmCancelReservationPrompt(): Promise<boolean> {
 export function minimumAvailabilityStartTime(availabilities: Availability[]): string {
   return availabilities.reduce((min, a) => a.start_time < min ? a.start_time : min, availabilities[0].start_time);
 }
+
+export const jsonStringify = (obj: any, format: SerializeFormat) => {
+  if (format === 'json') {
+    return JSON.stringify(obj);
+  }
+  if (format === 'json-pretty') {
+    return JSON.stringify(obj, undefined, 2);
+  }
+  throw Error(`jsonStringify only support json or json-pretty`);
+};
+
+export const pick = <T, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> => {
+  const ret: any = {};
+  keys.forEach(key => {
+    ret[key] = obj[key];
+  });
+  return ret;
+};

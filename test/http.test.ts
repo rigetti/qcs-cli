@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import * as nock from 'nock';
 
-import * as config from '../src/config';
 import { DELETE,
          GET,
          POST,
@@ -13,6 +12,7 @@ import {
 } from '../src/utils';
 import { availabilitiesResponse,
          availabilityRequest,
+         config,
          creditsResponse,
          devicesResponse,
          latticesResponse,
@@ -123,7 +123,7 @@ const qmisResponse = { qmis: [
 
 describe('test the GET /qmis api', () => {
   beforeEach(() => {
-    nock(config.publicForestServer)
+    nock(config.url)
       .get(URLS.qmis)
       .reply(200, qmisResponse);
   });
@@ -156,12 +156,12 @@ describe('test the POST /reservations api', () => {
 */
 
 const qmiRequest = {
-  ssh_key: 'test-key',
+  public_key: 'test-key',
 };
 
 describe('test the POST /qmis api', () => {
   beforeEach(() => {
-    nock(config.publicForestServer)
+    nock(config.url)
       .post(URLS.qmis, (data: QMIRequest) => {
         expect(data).to.eql(qmiRequest);
         return true;

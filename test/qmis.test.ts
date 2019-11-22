@@ -1,10 +1,11 @@
 import {expect, test} from '@oclif/test';
+import * as nock from 'nock';
 import * as sinon from 'sinon';
 
-import { POST } from '../src/http';
+import { POST, URLS } from '../src/http';
 import * as utils from '../src/utils';
+import { config, key, mockDeleteQMI, mockGetQMI, mockGetQMIs } from './test-utils';
 
-import { key, mockDeleteQMI, mockGetQMI, mockGetQMIs, mockPostQMI } from './test-utils';
 
 const serializedQMIs = `ID          IP              STATUS
 1           0.0.0.0         ACTIVE
@@ -13,14 +14,24 @@ const serializedQMIs = `ID          IP              STATUS
 describe('query qmis where qcs qmis', () => {
   beforeEach(() => {
     mockGetQMIs();
+
   });
 
   test
-  .stdout()
-  .command(['qmis'])
-  .it('should call qmis command with no arguments and verify command output', ctx => {
-    expect(ctx.stdout).to.equal(serializedQMIs);
-  });
+    .stdout()
+    .command(['qmis'])
+    .it('should call qmis command with no arguments and verify command output', ctx => {
+      expect(ctx.stdout).to.equal(serializedQMIs);
+    });
+
+  test
+    .stdout()
+    .command(['qmis', '--format=json'])
+    .it('should call qmis command with no arguments and output in json', ctx => {
+      const qmis = JSON.parse(ctx.stdout);
+      expect(qmis[0].id).to.equal(1);
+      expect(qmis[0].status).to.equal('ACTIVE');
+    });
 });
 
 describe('query qmis where qcs qmis with --id arg', () => {
@@ -37,13 +48,27 @@ describe('query qmis where qcs qmis with --id arg', () => {
 });
 
 describe('create a qmi', () => {
-  beforeEach(() => {
-    mockPostQMI();
-  });
-
+  let confirmDeleteQMIStub: sinon.SinonStub;
   const keypath = 'some-path';
-  const getKeyStub = sinon.stub(utils, 'getKey');
-  getKeyStub.withArgs(keypath).returns(key);
+  let getKeyStub: sinon.SinonStub;
+  beforeEach(() => {
+    confirmDeleteQMIStub = sinon.stub(utils, 'confirmDeleteQMI');
+    confirmDeleteQMIStub.returns(new Promise((ok) => {
+        ok(true);
+    }));
+    getKeyStub = sinon.stub(utils, 'getKey');
+    getKeyStub.returns('some-key');
+    nock(config.url)
+      .post(URLS.qmis, (data: utils.QMIRequest) => {
+        expect(data).to.eql({ public_key: key });
+        return true;
+      })
+      .reply(201);
+  });
+  afterEach(() => {
+    confirmDeleteQMIStub.restore();
+    getKeyStub.restore();
+  });
 
   test
   .stdout()
@@ -57,14 +82,16 @@ describe('create a qmi', () => {
 
 describe('delete a qmi', () => {
   const id = 1;
-
+  let confirmDeleteStub: sinon.SinonStub;
   beforeEach(() => {
     mockGetQMI(id);
     mockDeleteQMI(id);
+    confirmDeleteStub = sinon.stub(utils, 'confirmDeleteQMI');
+    confirmDeleteStub.returns(new Promise((ok) => ok(true)));
   });
-
-  const confirmDeleteStub = sinon.stub(utils, 'confirmDeleteQMI');
-  confirmDeleteStub.returns(new Promise((ok) => ok(true)));
+  afterEach(() => {
+    confirmDeleteStub.restore();
+  });
 
   test
   .stdout()
@@ -102,3 +129,4 @@ test
       expect(ctx.stdout).to.include("QMI successfully powered off");
   });
 });
+
