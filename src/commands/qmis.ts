@@ -8,7 +8,9 @@ import { confirmDeleteQMI,
          parsePositiveInteger,
          QMI,
          QMIRequest,
-         serializeQMIs } from '../utils';
+         serializeQMIs,
+         pick} from '../utils';
+import { baseOptions, SerializeFormat } from '../baseOptions';
 
 const STATIC_EXAMPLE = `$ qcs qmis`;
 
@@ -53,6 +55,7 @@ export default class QMIS extends CommandWithCatch {
       description: 'Power off a QMI, requires specifying an --id.',
       required: false,
     }),
+    ...pick(baseOptions, 'format', 'confirm'),
   };
 
   async run() {
@@ -93,7 +96,10 @@ export default class QMIS extends CommandWithCatch {
       let qmi;
       qmi = await GET.qmi(id) as QMI;
 
-      const answer = await confirmDeleteQMI(qmi);
+      let answer = flags.confirm;
+      if (!answer) {
+        answer = await confirmDeleteQMI(qmi);
+      }
       if (answer) {
         await DELETE.qmis(id);
         this.log('QMI deletion successful.');
@@ -127,7 +133,7 @@ export default class QMIS extends CommandWithCatch {
         qmis = await GET.qmis() as QMI[];
       }
 
-      this.log(serializeQMIs(qmis));
+      this.log(serializeQMIs(qmis, flags.format as SerializeFormat));
     }
   }
 }

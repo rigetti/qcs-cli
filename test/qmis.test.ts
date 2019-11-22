@@ -18,11 +18,20 @@ describe('query qmis where qcs qmis', () => {
   });
 
   test
-  .stdout()
-  .command(['qmis'])
-  .it('should call qmis command with no arguments and verify command output', ctx => {
-    expect(ctx.stdout).to.equal(serializedQMIs);
-  });
+    .stdout()
+    .command(['qmis'])
+    .it('should call qmis command with no arguments and verify command output', ctx => {
+      expect(ctx.stdout).to.equal(serializedQMIs);
+    });
+
+  test
+    .stdout()
+    .command(['qmis', '--format=json'])
+    .it('should call qmis command with no arguments and output in json', ctx => {
+      const qmis = JSON.parse(ctx.stdout);
+      expect(qmis[0].id).to.equal(1);
+      expect(qmis[0].status).to.equal('ACTIVE');
+    });
 });
 
 describe('query qmis where qcs qmis with --id arg', () => {
