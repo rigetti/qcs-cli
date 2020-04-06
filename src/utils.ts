@@ -225,7 +225,7 @@ export function serializeLattice(latticeName: string, lattice: Lattice, format: 
   let str = '';
   const qubits = Object.keys(lattice.qubits);
   const pricePerMin = currencyFormatter.format(lattice.price_per_minute / 100.);
-  str += 'LATTICE\n';
+  str += 'DEVICE\n';
   str += `Name: ${latticeName}\n`;
   str += `  Device: ${lattice.device_name}\n`;
   str += `  Number of qubits: ${qubits.length}\n`;
@@ -351,9 +351,9 @@ export interface AvailabilityRequest {
   duration: number;
 }
 const reservationTitles =
-  'ID    START                    END                      DURATION  LATTICE            PRICE';
+  'ID    START                    END                      DURATION  DEVICE             PRICE';
 export const availabilityTitles =
-  'START                    END                      DURATION  LATTICE            PRICE';
+  'START                    END                      DURATION  DEVICE             PRICE';
 const currentHeader = 'CURRENTLY RUNNING COMPUTE BLOCKS';
 const upcomingHeader = 'UPCOMING COMPUTE BLOCKS';
 
@@ -578,7 +578,7 @@ export const jsonStringify = (obj: any, format: SerializeFormat) => {
   if (format === 'json-pretty') {
     return JSON.stringify(obj, undefined, 2);
   }
-  throw Error(`jsonStringify only support json or json-pretty`);
+  throw Error(`jsonStringify only supports json or json-pretty`);
 };
 
 export const pick = <T, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> => {

@@ -18,7 +18,7 @@ import { baseOptions, SerializeFormat } from '../baseOptions';
 const STATIC_EXAMPLE = `Reserve time.
 
 EXAMPLES:
-$ qcs reserve --lattice 6Q-Ring --start "12/8/18 2pm PST" --duration 30m
+$ qcs reserve --device Asepn-7  --start "12/8/2020 2pm PST" --duration 30m
 `;
 
 export default class Reserve extends CommandWithCatch {
@@ -29,9 +29,9 @@ export default class Reserve extends CommandWithCatch {
   static flags = {
     help: flags.help({ char: 'h' }),
     // flag with a value (-n, --name=VALUE)
-    lattice: flags.string({
-      char: 'l',
-      description: 'Lattice on which to book time.',
+    device: flags.string({
+      char: 'd',
+      description: 'Device on which to book time.',
       required: false,
     }),
     start: flags.string({
@@ -73,18 +73,18 @@ export default class Reserve extends CommandWithCatch {
     }
 
     if (flags.list) {
-      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
+      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.device);
       const availabilities = await GET.availability(availreq);
       this.log(serializeAvailabilities(availabilities, flags.format as SerializeFormat));
       return;
     }
     if (flags.confirm) {
-      if (!flags.lattice) {
-        this.logErrorAndExit('Must provide lattice name when confirming reservation.');
+      if (!flags.device) {
+        this.logErrorAndExit('Must provide device name when confirming reservation.');
         return;
       }
-      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
-      const resreq = makeReservationRequest(availreq, flags.lattice, flags.notes || '');
+      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.device);
+      const resreq = makeReservationRequest(availreq, flags.device, flags.notes || '');
       const reservations = await POST.reserve(resreq);
       this.log(serializeReservations(reservations, { format: flags.format as SerializeFormat }));
       return;
@@ -96,7 +96,7 @@ export default class Reserve extends CommandWithCatch {
       const credits = await GET.credits();
       logCredits(credits);
 
-      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.lattice);
+      const availreq = makeAvailabilityRequest(flags.start, flags.duration, flags.device);
       const availabilities = await GET.availability(availreq);
       this.log(serializeAvailabilities(availabilities, flags.format as SerializeFormat));
 

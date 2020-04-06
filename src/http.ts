@@ -18,15 +18,16 @@ let config: QCSConfig;
 export const setConfig = (c: QCSConfig) => config = c;
 
 export const URLS = {
-  schedule: '/schedule',
-  nextAvailable: '/schedule/next_available',
-  scheduleOverlap: '/schedule/proposed-reservations-overlap',
   cancel: '/schedule',
-  lattices: '/lattices',
-  devices: '/devices',
   credits: '/users/credits',
-  qmis: '/qmis',
+  devices: '/devices',
   graphql: '/graphql',
+  lattices: '/lattices',
+  latticesSpecs: '/lattices/specs',
+  nextAvailable: '/schedule/next_available',
+  qmis: '/qmis',
+  schedule: '/schedule',
+  scheduleOverlap: '/schedule/proposed-reservations-overlap',
 };
 
 export interface ErrorResponse {
@@ -139,6 +140,9 @@ export const GET = {
       }
       throw err;
     }
+  },
+  latticesSpecs: async (): Promise<{devices: Array<any>, lattices_specs: Array<any>}> => {
+    return await config.request({uri: URLS.latticesSpecs});
   },
   devices: async (deviceName?: string): Promise<DevicesByName> => {
     const response = (await config.request({
