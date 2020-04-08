@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { AsciiCanvas, Point, PointMath } from '../asciiCanvas';
 import { flags } from '@oclif/command';
 import CommandWithCatch from '../command-with-catch';
 import { GET } from '../http';
@@ -47,7 +48,7 @@ type SpecsTable = [SpecsHeaderRow, ...Array<SpecsRow>];
 
 function largestLattice (latticesSpecs: Array<LatticeSpec>, deviceId: number): LatticeSpec {
   // Return the largest lattice (most qubits) with a given deviceId.
-  let largest: LatticeSpec = latticesSpecs[0];
+  let largest: LatticeSpec;
 
   latticesSpecs.forEach(lattice => {
     if (!largest && lattice.device_id == deviceId) {
@@ -62,15 +63,17 @@ function largestLattice (latticesSpecs: Array<LatticeSpec>, deviceId: number): L
   return largest;
 }
 
-function normalizeDevices (devices: Array<DeviceSpec>, latticesSpecs: Array<LatticeSpec>): Array<DeviceSpec> {
-  // `devices` maps device id -> device info. Augment the mapping to
-  // include a device name -> info mapping.
-  let result: Array<DeviceSpec> = [];
-
-  for (const value of Object.values(devices)) {
-    value.lattice = largestLattice(latticesSpecs, value.id);
-    result.push(value);
-  }
+function normalizeDevices (devices, latticesSpecs: Array<LatticeSpec>): Array<DeviceSpec> {
+  let result: Array<DeviceSpec> = latticesSpecs.map(lattice => {
+    const device = devices[lattice.device_id];
+    return {
+      id: device.id,
+      name: device.name,
+      specs: device.specs,
+      num_qubits: device.num_qubits,
+      lattice: lattice
+    }
+  });
 
   return result;
 }
@@ -93,6 +96,7 @@ function specsTable (label: string, specNames: Array<string>, specs: Object): Sp
   return [[label, ...specNames], ...dataRows.sort((a, b) => parseInt(a[0]) - parseInt(b[0]))];
 }
 
+
 function specsTables (specNames: Array<string>, device: DeviceSpec) {
   // Return the 1Q and 2Q specs for device that include specNames
   const specNames1q = intersection(specNames, device.lattice.spec_names_1q);
@@ -101,6 +105,7 @@ function specsTables (specNames: Array<string>, device: DeviceSpec) {
   return [specsTable('Qubit', specNames1q, device.specs['1Q']),
           specsTable('Qubit Pair', specNames2q, device.specs['2Q'])]
 }
+
 
 function formatSpecsTable(specsTable: SpecsTable): string {
   let columnWidth = (i: number) => {
@@ -143,6 +148,72 @@ function formatSpecsTable(specsTable: SpecsTable): string {
   return output;
 }
 
+
+const baseQubitCoordinates = [
+  [12, 0],
+  [14, 2],
+  [14, 4],
+  [12, 6],
+  [5, 6],
+  [3, 4],
+  [3, 2],
+  [5, 0],
+];
+
+
+class DiagramQubit {
+  name: String;
+  octagonIndex: number;
+  qubitIndex: number;
+  dead: boolean = false;
+
+  constructor(name: string) {
+    let nameValue = parseInt(name);
+    this.name = name;
+    this.octagonIndex = Math.floor(nameValue / 10);
+    this.qubitIndex = nameValue % 10;
+  }
+
+  position(): Point {
+    const offset: Number = 15;
+    return PointMath.add(baseQubitCoordinates[this.qubitIndex],
+                         [this.octagonIndex * offset, 0]);
+  }
+
+  label(): string {
+    if (this.dead) {
+      return 'x';
+    } else {
+      return this.name;
+    }
+  }
+
+  draw(canvas: AsciiCanvas) {
+    canvas.putString(this.position(), this.label());
+  }
+
+  drawConnection(canvas: AsciiCanvas, q: DiagramQubit) {
+    if (!(this.dead || q.dead)) {
+      canvas.line(this.position(), q.position());
+    }
+  }
+}
+
+function latticeTopology(lattice: LatticeSpec): string {
+  const c = new AsciiCanvas(200, 7);
+  const isa = lattice.device_isa;
+
+  lattice.edges.map(edge => {
+    let [q1, q2] = edge.split(/-/).map(name => new DiagramQubit(name));
+    q1.dead = isa['1Q'][q1.name]['dead'];
+    q2.dead = isa['1Q'][q2.name]['dead'];
+    q1.drawConnection(c, q2);
+    q1.draw(c);
+    q2.draw(c);
+  });
+  return c.toString();
+}
+
 export default class Devices extends CommandWithCatch {
   static description = 'View available QPU devices.';
 
@@ -170,6 +241,12 @@ export default class Devices extends CommandWithCatch {
       char: 'f',
       required: false,
       description: 'Format of the output; if specified, one of \'json\' or \'csv\'',
+    }),
+    topology: flags.boolean({
+      name: 'topology',
+      char: 't',
+      required: false,
+      description: 'Include device topology in output',
     }),
     help: flags.help({ char: 'h' }),
   };
@@ -211,12 +288,11 @@ export default class Devices extends CommandWithCatch {
     }
 
     if (flags.name) {
-      const selectedDevice = devices.find(device => device.name === flags.name);
-      if (!selectedDevice) {
+      devices = devices.filter(device => device.name === flags.name);
+      if (devices.length == 0) {
         this.logErrorAndExit(`Unknown device name '${flags.name}'`);
         return;
       }
-      devices = [selectedDevice]
     }
 
     let outputString: string = '';
@@ -254,9 +330,14 @@ export default class Devices extends CommandWithCatch {
     } else {
       devices.forEach(device => {
         outputString += `DEVICE\nName: ${device.name}\n`;
-        outputString += `  Number of qubits: ${device.num_qubits}\n`;
+        outputString += `  Number of qubits: ${device.lattice.qubits.length}\n`;
         outputString += `  Qubits: ${device.lattice.qubits.sort((a: number, b: number) => a - b).join(',')}\n`;
-        outputString += `  Price (per min.): ${currencyFormatter.format(device.lattice.price_per_minute)}\n`;
+        outputString += `  Price (per min.): ${currencyFormatter.format(device.lattice.price_per_minute / 100)}\n`;
+
+        if (flags.topology) {
+          outputString += `  Topology for ${device.lattice.name}:\n\n`;
+          outputString += latticeTopology(device.lattice) + '\n\n';
+        }
 
         if (specs.length) {
           const [specsTable1q, specsTable2q] = specsTables(specs, device);
